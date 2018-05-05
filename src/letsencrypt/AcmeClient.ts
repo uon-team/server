@@ -113,7 +113,7 @@ export class AcmeClient {
         // send the request
         return this.sendSignedRequest(
             this.directory[AcmeMethod.NewReg],
-            JSON.stringify(payload)
+            JSON.stringify(payload, null, 2)
         ).then((result) => {
 
             if (result.statusCode === 409) {
@@ -313,8 +313,11 @@ export class AcmeClient {
      */
     private loadDirectory() {
 
+        console.log("Requesting ACME directory");
         return this.makeRequest('GET', this.directoryUrl)
             .then((response) => {
+
+                console.log(response.body);
 
                 this.directory = JSON.parse(response.body.toString('utf8'));
                 this.agreementUrl = this.directory['meta']['terms-of-service'];
@@ -345,9 +348,16 @@ export class AcmeClient {
 
         let uri = new URL(url);
 
-        let options = uri as https.RequestOptions;
-        options.method = method;
-        options.headers = DEFAULT_REQUEST_HEADERS;
+        let options: https.RequestOptions = {
+            host: uri.host,
+            path: uri.pathname,
+            method: method,
+            headers: DEFAULT_REQUEST_HEADERS,
+            protocol: 'https:'
+
+        };
+
+        //console.log(options);
 
 
         return new Promise<AcmeResponse>((resolve, reject) => {
@@ -358,11 +368,11 @@ export class AcmeClient {
                 //    res.setEncoding(encoding);
 
                 // get all the data
-                let buffer = '';
+                let buffer: any[] = [];
 
                 // accumulate data into a buffer
                 res.on('data', (chunk) => {
-                    buffer += chunk;
+                    buffer.push(chunk);
                 });
 
                 // finished receiving data
@@ -370,7 +380,7 @@ export class AcmeClient {
 
                     resolve({
                         statusCode: res.statusCode,
-                        body: new Buffer(buffer, encoding),
+                        body: Buffer.concat(buffer),
                         headers: res.headers
                     });
 
@@ -381,8 +391,8 @@ export class AcmeClient {
                 reject(e);
             });
 
-            req.write(data, encoding);
-            req.end();
+            //req.write();
+            req.end(data || '', encoding);
 
         });
     }
@@ -425,7 +435,7 @@ export class AcmeClient {
 
             // get a signature
             let signature64 = UrlBase64Encode(
-                signer.sign(this.account.pem.toString(), 'base64')
+                signer.sign(this.account.pem, 'base64')
             );
 
             // build the request data object

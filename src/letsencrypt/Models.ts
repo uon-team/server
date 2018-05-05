@@ -1,7 +1,7 @@
 
 
 export interface Account {
-    pem: Buffer;
+    pem: string;
     email: string;
 }
 

@@ -102,7 +102,7 @@ export class LetsEncryptService {
 
         let rsa = GenerateRSA(4096);
 
-        return { email: email, pem: rsa };
+        return { email: email, pem: rsa.toString('utf8') };
     }
 
     /**
