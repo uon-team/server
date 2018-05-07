@@ -224,7 +224,71 @@ export class AcmeClient {
 
     }
 
-    waitForChallenge(challenge: Challenge) {
+
+    /**
+     * Poll LE to get the challenge status, we want to wait for it before
+     * continuing generating and signing certificates
+     * @param challengeUri 
+     */
+    waitForChallenge(challengeUri: string) {
+
+        let try_count = 0;
+        const max_count = 5;
+
+        const retry_func = (count: number): Promise<boolean> => {
+
+            // throw on max retries reached
+            if(count >= max_count) {
+                throw new Error('Max retry count reached.')
+            }
+
+            // make the request
+            return this.makeRequest('GET', challengeUri).then((result) => {
+
+                // check for a valid status code
+                if (result.statusCode !== 202) {
+                    console.log('waitForChallenge: invalid response code getting uri %s', result.statusCode);
+                    throw new Error('Bad response code:' + result.statusCode);
+                }
+
+                // parse the response body
+                let body = JSON.parse(result.body.toString('utf8'));
+
+                // Challenge is still pending, retry
+                if (body.status === 'pending') {
+                   return retry_func(try_count++);
+                }
+                // challenge has passed, we can continue
+                else if (body.status === 'valid') {
+                    return true;
+                }
+                // challenge is invalid, we cannot continue
+                else if (body.status === 'invalid') {
+                    return false;
+                }
+
+            });
+
+
+        };
+
+        return new Promise((resolve, reject) => {
+
+            retry_func(try_count++).then((result) => {
+
+                // when result is false, we have and invalid status
+                if(!result) {
+                   return reject(new Error('Challenge failed'));
+                }
+
+                // otherwise it's all good
+                resolve();
+                
+            })
+            // reject on any error
+            .catch(reject);
+
+        });
 
     }
 
@@ -348,6 +412,8 @@ export class AcmeClient {
 
         let uri = new URL(url);
 
+
+        // build request options
         let options: https.RequestOptions = {
             host: uri.host,
             path: uri.pathname,
@@ -357,15 +423,10 @@ export class AcmeClient {
 
         };
 
-        //console.log(options);
-
-
+        // promisify the request
         return new Promise<AcmeResponse>((resolve, reject) => {
 
             let req = https.request(options, (res) => {
-
-                //if(encoding)
-                //    res.setEncoding(encoding);
 
                 // get all the data
                 let buffer: any[] = [];

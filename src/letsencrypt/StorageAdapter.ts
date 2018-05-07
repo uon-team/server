@@ -7,8 +7,6 @@ export abstract class LetsEncryptStorageAdapter {
     abstract getAccount(email: string): Promise<Account>;
 
     abstract saveAccount(account: Account): Promise<Account>;
-
-    abstract getCertificates(domains: string[]): Promise<Certificate[]>;
     
     abstract getCertificate(domain: string): Promise<Certificate>;
 

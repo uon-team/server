@@ -58,7 +58,7 @@ export class LetsEncryptService {
         }).then(() => {
 
             // now lets get the certificates
-            return this.storageAdapter.getCertificates(this.config.domains).then((certs) => {
+            return this.loadCertificates(this.config.domains).then((certs) => {
 
                 let promises: Promise<Certificate>[] = [];
 
@@ -72,6 +72,7 @@ export class LetsEncryptService {
                             break;
                         }
                     }
+
 
                     // didnt find cert or cert is (nearly) expired
                     if (!cert || (cert && cert.renewBy.getTime() < Date.now())) {
@@ -168,7 +169,7 @@ export class LetsEncryptService {
             }).then(() => {
 
                 // wait until LE has figured out the puzzle
-                return client.waitForChallenge(challenge);
+                return client.waitForChallenge(challenge_uri);
 
             });
 
@@ -238,6 +239,21 @@ export class LetsEncryptService {
 
     }
 
+
+    private loadCertificates(domains: string[]) {
+
+        let promises: Promise<Certificate>[] = [];
+
+        domains.forEach((d) => {
+
+            promises.push(this.storageAdapter.getCertificate(d));
+        })
+
+        return Promise.all(promises).then((values) => {
+
+            return values.filter((v) => {v != null});
+        });
+    }
 
 
 }

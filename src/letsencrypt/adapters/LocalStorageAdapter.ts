@@ -9,6 +9,11 @@ export interface LocalStorageAdapterOptions {
     baseDir: string;
 }
 
+
+/**
+ * Storage adapter for storing Let's Encrypt accounts and certificates 
+ * on the local hard disk. make sure the baseDir is not publicly accessible.
+ */
 export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter {
 
     private _accounts: string;
@@ -40,27 +45,15 @@ export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter
         return this.writeJson(fp, account).then(() => account);
     }
 
-    getCertificates(domains: string[]): Promise<Certificate[]> {
-
-        let promises: Promise<Certificate>[] = [];
-
-
-        domains.forEach((d) => {
-
-            promises.push(this.getCertificate(d));
-        })
-
-        return Promise.all(promises).then((values) => {
-
-            return values.filter((v) => {v != null});
-        });
-    }
-
     getCertificate(domain: string): Promise<Certificate> {
 
         let fp = path.join(this._certificates, domain + '.json');
 
-        return this.readJson(fp).then((cert) => {
+        return this.readJson(fp).then((cert: Certificate) => {
+
+            if(cert) {
+                cert.renewBy = new Date(cert.renewBy);
+            }
             return cert;
         });
 
