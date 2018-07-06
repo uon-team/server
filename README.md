@@ -6,7 +6,7 @@ A full-featured web server written in Typescript with Let's Encrypt support. Thi
 ## Usage
 
 ```shell
-    npm install @uon/server --save
+    npm i @uon/server
 ```
 
 ## Http Module

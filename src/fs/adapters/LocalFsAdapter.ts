@@ -27,9 +27,8 @@ export class LocalFsAdapter implements FsAdapter {
 
     createReadStream(path: string, options?: any): Promise<ReadStream> {
 
-        let filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
-        
         return new Promise((resolve, reject) => {
 
             let stream = fs.createReadStream(filepath, options)
@@ -48,7 +47,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     read(path: string): Promise<Buffer> {
 
-        let filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -67,7 +66,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     write(path: string, data: Buffer): Promise<FileStat> {
 
-        var filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -97,7 +96,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     delete(path: string): Promise<boolean> {
 
-        var filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -116,7 +115,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     stat(path: string): Promise<FileStat> {
 
-        var filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -134,7 +133,8 @@ export class LocalFsAdapter implements FsAdapter {
                     created: stats.ctime,
                     size: stats.size,
                     mimeType: mime ? mime as string : undefined,
-                    ext: ext ? ext as string : undefined
+                    ext: ext ? ext as string : undefined,
+                    path: filepath
                 });
 
             });
@@ -161,6 +161,6 @@ function SanitizePath(path: string) {
 
 
     return path.replace(/[\x00-\x1f\x80-\x9f]/g, '').replace(/\.+\//g, '');
-        
+
 
 }

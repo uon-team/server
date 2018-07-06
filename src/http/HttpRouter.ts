@@ -5,6 +5,7 @@ import {
     CreateMetadataCtor,
     GetOrDefineMetadata,
     GetMetadata,
+    FindMetadataOfType,
     Router,
     RouterInfo,
     RouteInfo,
@@ -40,9 +41,9 @@ export interface HttpRouter {
  * Defines an HttpRouter
  * @param options 
  */
-export function HttpRouter<T extends HttpRouter>(options: T) {
+export function HttpRouter(options: HttpRouter) {
 
-    let meta_ctor = CreateMetadataCtor((ctrl: T) => ctrl);
+    let meta_ctor = CreateMetadataCtor((ctrl: HttpRouter) => ctrl);
     if (this instanceof HttpRouter) {
         meta_ctor.apply(this, arguments);
         return this;
@@ -52,7 +53,7 @@ export function HttpRouter<T extends HttpRouter>(options: T) {
 
         if (options.parent) {
 
-            let parent_ctrl: HttpRouter = GetHttpRouterMetadata(options.parent, HttpRouter);
+            let parent_ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, options.parent, HttpRouter);
 
             if (!parent_ctrl) {
                 throw new Error(`HttpRouter: parent was defined 
@@ -88,10 +89,10 @@ export function HttpRouter<T extends HttpRouter>(options: T) {
 
 export interface HttpRoute {
 
-    // an HTTP method, can be a comma separated list
+    // an HTTP method, can be an array
     method?: string | string[];
 
-    // The path to test with parameters (ie. /my/path/:withId/*)
+    // The path regexp to test
     path: string;
 
     // the method name, do not set this as it with be overridden
@@ -101,7 +102,7 @@ export interface HttpRoute {
 }
 
 /**
- * RouteHandler decorator for router methods
+ * HttpRoute decorator for router endpoints 
  * @param meta 
  */
 export function HttpRoute(meta: HttpRoute) {
@@ -158,6 +159,9 @@ function GetHttpRouterMetadata<T>(type: Type<T>, metaType: Function): any {
 }
 
 
+const EMPTY_OBJECT: any = {};
+const EMPTY_ARRAY: any[] = [];
+
 /**
     * Create a Router hierachy from 
     * @param refs 
@@ -179,56 +183,58 @@ export function RouterFromModuleRefs(moduleRefs: Map<Type<any>, ModuleRef<any>>)
     // go over all the loaded modules
     for (let [module_type, module_ref] of moduleRefs) {
 
-        let declarations = module_ref.module.declarations;
+        let declarations = module_ref.module.declarations || EMPTY_ARRAY;
         // go over all declaration
-        if (declarations) {
-            for (let i = 0; i < declarations.length; ++i) {
 
-                let decl_type = declarations[i];
+        for (let i = 0; i < declarations.length; ++i) {
 
-                let properties = Reflect.getMetadata(META_PROPERTIES, decl_type.prototype);
-                let ctrl: HttpRouter = GetHttpRouterMetadata(decl_type, HttpRouter);
+            let decl_type = declarations[i];
 
-                if (ctrl) {
+            let properties = GetMetadata(META_PROPERTIES, decl_type.prototype) || EMPTY_OBJECT;
+            let ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, decl_type, HttpRouter);
 
-                    let handlers: RouteInfo<HttpRoute>[] = [];
+            if (ctrl) {
 
-                    // go ever all properties to find RouteHandlers
-                    if (properties) {
-                        for (let name in properties) {
-                            if (Array.isArray(properties[name])) {
-                                properties[name].forEach((p: any) => {
-                                    if (p instanceof HttpRoute) {
+                let handlers: RouteInfo<HttpRoute>[] = [];
 
-                                        let h = p as HttpRoute;
-                                        let param_keys: string[] = [];
+                // go over all properties to find HttpRoutes
+                for (let name in properties) {
+                    if (Array.isArray(properties[name])) {
+                        properties[name].forEach((p: any) => {
+                            if (p instanceof HttpRoute) {
 
-                                        handlers.push({
-                                            regex: PathUtils.pathToRegex(PathUtils.join(ctrl.path, h.path), param_keys),
-                                            metadata: h,
-                                            keys: param_keys
-                                        });
+                                let h = p as HttpRoute;
+                                let param_keys: string[] = [];
 
-                                    }
+                                // build regex
+                                let regex = PathUtils.pathToRegex(PathUtils.join(ctrl.path, h.path) || '/' , param_keys) ;
+
+                                handlers.push({
+                                    regex: regex,
+                                    metadata: h,
+                                    keys: param_keys
                                 });
-                            }
-                        }
-                    }
 
-                    // we only create an entry if path is defined
-                    if (ctrl.path) {
-                        entries.push({
-                            type: decl_type,
-                            path: ctrl.path,
-                            metadata: ctrl,
-                            router: new Router(match_funcs),
-                            routes: handlers,
-                            module: module_ref
+                            }
                         });
                     }
                 }
+
+
+                // we only create an entry if path is defined
+                if (ctrl.path) {
+                    entries.push({
+                        type: decl_type,
+                        path: ctrl.path,
+                        metadata: ctrl,
+                        router: new Router(match_funcs),
+                        routes: handlers,
+                        module: module_ref
+                    });
+                }
             }
         }
+
     }
 
 

@@ -8,6 +8,7 @@ export interface FileStat {
     ext?: string;
     mimeType?: string;
     url?: string;
+    path?: string;
 }
 
 export abstract class FsAdapter {

@@ -26,9 +26,15 @@ export interface CookieSetOptions {
 @Injectable()
 export class HttpCookies {
 
+    // request cookie storage
     private _get: { [k: string]: string } = {};
+
+    // response cookie storage
     private _set: { [k: string]: string } = {};
 
+    /**
+     * ctor
+     */
     constructor(private context: HttpContext) {
 
         // parse incoming cookies

@@ -1,10 +1,10 @@
 import { InjectionToken, Provider } from '@uon/core';
 import { HttpRequestBodyConfig, HttpRequestBody, HttpRequestBodyBufferFactory, HTTP_REQUEST_BODY_CONFIG } from './HttpRequestBody';
-import { HttpCacheConfig, HttpCache, HTTP_CACHE_CONFIG } from './HttpCache';
-import { HttpEncodingConfig, HttpEncoding } from './HttpEncoding';
+import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './HttpCache';
+import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './HttpEncoding';
 import { HttpCookies } from './HttpCookies';
 import { HttpAuthorization } from './HttpAuthorization';
-import { HttpRange } from './HttpRange';
+import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './HttpRange';
 
 
 // the unique http config token
@@ -56,7 +56,8 @@ export function GetHttpContextDefaultProviders() {
         {
             token: HTTP_REQUEST_BODY_CONFIG,
             value: <HttpRequestBodyConfig>{
-                maxLength: 1024 * 1024
+                maxLength: 1 * 1024 * 1024, // 1MB
+                accept: ['*/*']
             }
         },
 
@@ -67,7 +68,7 @@ export function GetHttpContextDefaultProviders() {
         HttpCache,
         {
             token: HTTP_CACHE_CONFIG,
-            value: <HttpCacheConfig>{ 
+            value: <HttpCacheConfig>{
                 etagStorage: {}
             }
         },
@@ -75,11 +76,23 @@ export function GetHttpContextDefaultProviders() {
         // auth support
         HttpAuthorization,
 
-        // encoding upport
+        // encoding support
         HttpEncoding,
+        {
+            token: HTTP_ENCODING_CONFIG,
+            value: <HttpEncodingConfig>{
+
+            }
+        },
 
         // range support
-        HttpRange
+        HttpRange,
+        {
+            token: HTTP_RANGE_CONFIG,
+            value: <HttpRangeConfig>{
+                maxChunkSize: 10 * 1024 * 1024, // 10MB
+            }
+        }
     ];
 
 

@@ -8,11 +8,13 @@ export { HttpModule } from './src/http/HttpModule';
 export { HttpServer } from './src/http/HttpServer';
 export { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './src/http/HttpConfig';
 export { HttpContext } from './src/http/HttpContext';
-export { HttpCookies } from './src/http/HttpCookies';
-export { HttpCache } from './src/http/HttpCache';
-export { HttpRange } from './src/http/HttpRange';
-export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
 export { HttpAuthorization } from './src/http/HttpAuthorization';
+export { HttpCookies } from './src/http/HttpCookies';
+export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/HttpCache';
+export { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './src/http/HttpEncoding';
+export { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './src/http/HttpRange';
+export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
+
 export { HttpRouter, HttpRoute, HTTP_ROUTER } from './src/http/HttpRouter';
 export { HttpError } from './src/http/HttpError';
 

@@ -158,6 +158,7 @@ export class HttpServer extends EventSource {
         // shortcut to config
         const config = this.config;
 
+        // fetch the root http router
         let router: Router<HttpRouter> = this.injector.get(HTTP_ROUTER);
 
         // create a new context
@@ -191,12 +192,12 @@ export class HttpServer extends EventSource {
             // emit error event
             return this.emit('error', http_context, ex).then(() => {
 
-                console.error(ex);
                 // final chance was given, respond with whatever error we got
                 // this is to avoid having a dangling connection that will eventually timeout
                 if (!http_context.responseSent) {
-                    res.writeHead(ex.code, ex.message);
-                    res.end(ex.body);
+                
+                    return http_context.send(ex.body, ex.code);
+                    
                 }
 
             });

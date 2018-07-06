@@ -133,7 +133,9 @@ export class HttpContext extends EventSource {
             token: HttpContext,
             value: this
         }];
-        
+
+        // get all providers
+
         // append all extra providers
         providers = providers.concat(GetHttpContextDefaultProviders(), this._providers);
 
@@ -157,20 +159,28 @@ export class HttpContext extends EventSource {
                 params.push(m.params[k]);
             }
 
+            // get the parent chain
+            let ctrls: Type<any>[] = [];
+
+
+
+            // create an injector for the match
+            let injector = Injector.Create([], this._injector);
+
 
             // call the handler in sequence
             promise_chain = promise_chain.then(() => {
 
                 // if a response was sent ignore the rest
-                if(this.responseSent) {
+                if (this.responseSent) {
                     return;
                 }
+                m.router.metadata
+                // instanciate the controller
+                return injector.instanciateAsync(m.router.type).then((ctrl) => {
 
-                // instaciate the controller
-                return this._injector.instanciateAsync(m.router.type).then((ctrl) => {
-                    
                     // call the method on the controller
-                    return ctrl[method_key](...params);
+                    return ctrl[method_key](m.params);
                 });
 
             });
@@ -182,22 +192,22 @@ export class HttpContext extends EventSource {
         return promise_chain.then(() => {
 
             // if no response was sent from any of the matches, we got a 404
-            if(!this.responseSent) {
+            if (!this.responseSent) {
                 throw new HttpError(404);
             }
 
         }).catch((err) => {
 
-            let error = err instanceof HttpError ? 
+            let error = err instanceof HttpError ?
                 err : new HttpError(500, null, JSON.stringify(err.stack));
-            
+
             return this.emit('error', this, error).then(() => {
 
                 // that was the final chance to respond
-                if(!this.responseSent) {
+                if (!this.responseSent) {
                     throw error;
                 }
-                
+
             });
 
         });
@@ -214,7 +224,7 @@ export class HttpContext extends EventSource {
     send(data: any, statusCode?: number, headers?: OutgoingHttpHeaders) {
 
 
-        if(this.responseSent) {
+        if (this.responseSent) {
             console.warn('Response already sent');
             return;
         }
@@ -228,10 +238,21 @@ export class HttpContext extends EventSource {
         // emit the response event so the user can change headers or whatever if he wants
         return this.emit('response', this, headers).then(() => {
 
+            let is_object = typeof data === 'object'
+
             // if content type is json and data is an object, stringify before sending
-            if (headers['Content-Type'] === "application/json" &&
-                typeof data === 'object') {
+            if (headers['Content-Type'] === "application/json" && is_object) {
                 data = JSON.stringify(data);
+            }
+            // json content type must be set for object
+            else if (is_object) {
+
+                console.error(`HttpContext.send(): 
+                    You must set Content-Type header to 'application/json' 
+                    if you want to send an object as response`);
+
+                throw new HttpError(500);
+
             }
 
             // write the head
@@ -250,7 +271,7 @@ export class HttpContext extends EventSource {
      */
     pipe(stream: ReadStream, statusCode?: number, headers?: OutgoingHttpHeaders) {
 
-        if(this.responseSent) {
+        if (this.responseSent) {
             console.warn('Response already sent');
             return;
         }
@@ -265,7 +286,7 @@ export class HttpContext extends EventSource {
         return this.emit('response', this, headers).then(() => {
 
             // write the http headers
-			this.response.writeHead(status, headers);
+            this.response.writeHead(status, headers);
 
             // pipe the stream to the response object
             stream.pipe(this.response);
@@ -274,11 +295,11 @@ export class HttpContext extends EventSource {
 
     }
 
-     /**
-     * Sends a redirect header
-     * @param location The url to redirect to
-     * @param permanent Wheter this is meant to be a permanent redirection (301 vs 302)
-     */
+    /**
+    * Sends a redirect header
+    * @param location The url to redirect to
+    * @param permanent Whether this is meant to be a permanent redirection (301 vs 302)
+    */
     redirect(location: string, permanent?: boolean) {
 
         // create a headers object
@@ -295,7 +316,7 @@ export class HttpContext extends EventSource {
 
         });
     }
-    
+
 
 }
 
@@ -332,5 +353,9 @@ function GetClientIp(req: IncomingMessage): string {
     return header.split(',')[0] || req.connection.remoteAddress;
 }
 
+
+function ExtractProvidersFromMatches(matches: RouteMatch[], output: any[]) {
+
+}
 
 

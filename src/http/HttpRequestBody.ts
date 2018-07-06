@@ -3,10 +3,20 @@ import { HttpContext } from './HttpContext';
 import { HttpError } from './HttpError';
 
 
-export const HTTP_REQUEST_BODY_BUFFER = new InjectionToken<Buffer>("Http Request Body Buffer")
-export const HTTP_REQUEST_BODY_CONFIG = new InjectionToken<HttpRequestBodyConfig>("Http Request Body Config")
+// Injection token for the request body raw buffer
+export const HTTP_REQUEST_BODY_BUFFER = new InjectionToken<Buffer>("Http Request Body Buffer");
+
+// Injection token for the requst body configuration
+export const HTTP_REQUEST_BODY_CONFIG = new InjectionToken<HttpRequestBodyConfig>("Http Request Body Config");
+
+// some http methods cannot have a body, we keep a list so we can ignore them
+const NO_BODY_METHODS = ['GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
 
 
+
+/**
+ * Configuration options for the request body
+ */
 export interface HttpRequestBodyConfig {
 
     // the maximum acceptable body size, in bytes
@@ -17,13 +27,6 @@ export interface HttpRequestBodyConfig {
 }
 
 
-// the default options
-const DEFAULT_OPTIONS = {
-    maxLength: 1024 * 1024 * 1 // 1mb
-}
-
-// some http methods cannot have a body, we keep a list so we can ignore them
-const NO_BODY_METHODS = ['GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
 
 /**
  * The request body interface, not injectable as we need an async factory
@@ -32,13 +35,11 @@ const NO_BODY_METHODS = ['GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
 @Injectable()
 export class HttpRequestBody {
 
-    //private _buffer: Buffer;
     private _mime: string;
     private _data: any;
 
     constructor(private context: HttpContext,
-        @Inject(HTTP_REQUEST_BODY_BUFFER)
-        private _buffer: Buffer) {
+        @Inject(HTTP_REQUEST_BODY_BUFFER) private _buffer: Buffer) {
 
         this._mime = context.request.headers['content-type'];
 
@@ -103,11 +104,16 @@ export const HttpRequestBodyBufferFactory = {
             // append chunks to the body as they come in
             context.request.on('data', (chunk) => {
 
-                console.log(`chunk ${chunk.length}`);
                 body.push(chunk);
 
             }).on('end', () => {
+
                 resolve(Buffer.concat(body));
+
+            }).on('error', (err) => {
+
+                reject(err);
+                
             });
 
 
