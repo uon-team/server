@@ -1,7 +1,7 @@
 {
   "name": "@uon/server",
-  "version": "0.1.2",
-  "description": "A full-featured HTTP and WS server platform with Let's Encrypt integration",
+  "version": "0.1.3",
+  "description": "An HTTP server application framework with Let's Encrypt integration.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -9,14 +9,12 @@
   },
   "dependencies": {
     "mime-types": "^2.1.17",
-    "ws": "^3.3.3",
     "@uon/core" : "^0.1.0"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.0",
     "@types/node": "^8.5.1",
     "@types/reflect-metadata": "0.0.5",
-    "@types/ws": "^3.2.1",
     "reflect-metadata": "^0.1.10",
     "ts-node": "^4.1.0",
     "typescript": "^2.6.2"

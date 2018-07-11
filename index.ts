@@ -1,8 +1,5 @@
 
 
-// Db exports
-export { DbModule } from './src/db/DbModule';
-
 // Http exports
 export { HttpModule } from './src/http/HttpModule';
 export { HttpServer } from './src/http/HttpServer';
@@ -35,9 +32,6 @@ export { Account as LetsEncryptAccount, Certificate as LetsEncryptCertificate, C
 export { LetsEncryptStorageAdapter } from './src/letsencrypt/StorageAdapter';
 export { LetsEncryptLocalStorageAdapter } from './src/letsencrypt/adapters/LocalStorageAdapter';
 
-
-// WebSocket exports
-export { WsModule } from './src/ws/WsModule';
 
 // Log exports
 export { LogModule } from './src/log/LogModule';

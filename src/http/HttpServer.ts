@@ -195,10 +195,9 @@ export class HttpServer extends EventSource {
                 // final chance was given, respond with whatever error we got
                 // this is to avoid having a dangling connection that will eventually timeout
                 if (!http_context.response.sent) {
-
-                    console.error(ex)
+                    //console.error(ex)
                     http_context.response.statusCode = ex.code || 500;
-                    return http_context.response.send(ex.body);
+                    return http_context.response.send(ex.body || ex.message);
 
                 }
 
