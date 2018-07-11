@@ -5,7 +5,7 @@ import * as mime_types from 'mime-types';
 
 import { FsAdapter, FileStat } from '../FsAdapter';
 import { ReadStream } from 'fs';
-
+import { Readable, Writable } from 'stream';
 
 
 export interface LocalFsConfig {
@@ -25,23 +25,19 @@ export class LocalFsAdapter implements FsAdapter {
 
     }
 
-    createReadStream(path: string, options?: any): Promise<ReadStream> {
+    createReadStream(path: string, options?: any): Readable {
 
         const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
-        return new Promise((resolve, reject) => {
+        return fs.createReadStream(filepath, options);
 
-            let stream = fs.createReadStream(filepath, options)
-                .on('open', () => {
+    }
 
-                    resolve(stream);
+    createWriteStream(path: string, options?: any): Writable {
 
-                })
-                .on('error', (err) => {
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
-                    reject(err);
-                });
-        });
+        return fs.createWriteStream(filepath, options);
 
     }
 
@@ -54,7 +50,7 @@ export class LocalFsAdapter implements FsAdapter {
             fs.readFile(filepath, (err, data) => {
 
                 if (err) {
-                    reject(err);
+                    return reject(err);
                 }
 
                 resolve(data);
@@ -79,13 +75,13 @@ export class LocalFsAdapter implements FsAdapter {
             fs.writeFile(filepath, data, (err) => {
 
                 if (err) {
-                    reject(err);
+                    return reject(err);
                 }
 
                 resolve({
                     name: path,
                     modified: new Date(),
-                    url: path
+                    url: filepath
                 });
 
             });
@@ -103,7 +99,7 @@ export class LocalFsAdapter implements FsAdapter {
             fs.unlink(filepath, (err) => {
 
                 if (err) {
-                    reject(err);
+                    return reject(err);
                 }
 
                 resolve(true);
@@ -134,7 +130,8 @@ export class LocalFsAdapter implements FsAdapter {
                     size: stats.size,
                     mimeType: mime ? mime as string : undefined,
                     ext: ext ? ext as string : undefined,
-                    path: filepath
+                    url: filepath,
+                    path: path
                 });
 
             });

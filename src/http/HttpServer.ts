@@ -28,7 +28,7 @@ export class HttpServer extends EventSource {
     private _https: https.Server;
 
 
-    constructor( @Inject(HTTP_CONFIG) private config: HttpConfig,
+    constructor(@Inject(HTTP_CONFIG) private config: HttpConfig,
         @Optional() private letsencrypt: LetsEncryptService,
         @Optional() private log: LogService,
         private injector: Injector) {
@@ -194,14 +194,20 @@ export class HttpServer extends EventSource {
 
                 // final chance was given, respond with whatever error we got
                 // this is to avoid having a dangling connection that will eventually timeout
-                if (!http_context.responseSent) {
-                
-                    return http_context.send(ex.body, ex.code);
-                    
+                if (!http_context.response.sent) {
+
+                    console.error(ex)
+                    http_context.response.statusCode = ex.code || 500;
+                    return http_context.response.send(ex.body);
+
                 }
 
             });
 
+
+        }).then(() => {
+
+            // all done
 
         });
 

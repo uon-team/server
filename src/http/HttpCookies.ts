@@ -1,5 +1,7 @@
 import { Injectable, ObjectUtils } from '@uon/core';
-import { HttpContext } from './HttpContext';
+import { HttpRequest } from './HttpRequest';
+import { HttpResponse } from './HttpResponse';
+import { HttpTransform } from './HttpTransform';
 
 
 const SPLIT_ENTRIES = /; */;
@@ -24,7 +26,7 @@ export interface CookieSetOptions {
 
 
 @Injectable()
-export class HttpCookies {
+export class HttpCookies extends HttpTransform {
 
     // request cookie storage
     private _get: { [k: string]: string } = {};
@@ -35,25 +37,13 @@ export class HttpCookies {
     /**
      * ctor
      */
-    constructor(private context: HttpContext) {
+    constructor(private request: HttpRequest) {
+
+        super();
 
         // parse incoming cookies
         this.parse();
 
-        // write the set-cookies header on response
-        context.on('response', (c, headers) => {
-
-            // build an array of Set-Cookie strings
-            let cs: string[] = [];
-            for (let key in this._set) {
-                cs.push(this._set[key]);
-
-            }
-
-            // set the header's Set-Cookie field with the array
-            headers['Set-Cookie'] = cs;
-
-        });
 
     }
 
@@ -65,12 +55,16 @@ export class HttpCookies {
      */
     setCookie(name: string, value: string, options?: CookieSetOptions) {
 
-        let opts = ObjectUtils.extend({}, DEFAULT_SET_COOKIE_OPTIONS, options);
-        opts.secure = this.context.secure;
-
+        const opts = ObjectUtils.extend({}, DEFAULT_SET_COOKIE_OPTIONS, options);
+        opts.secure = this.request.secure;
+    
         try {
             let result = this.serialize(name, value, opts);
+
             this._set[name] = result;
+
+            //let list = this.getSetCookieArray();
+            //list.push(result);
         }
         catch (ex) {
             console.warn(`Invalid set cookie ${name} = ${value}`);
@@ -94,12 +88,30 @@ export class HttpCookies {
     }
 
 
+    configure(options: any) {
+
+    }
+
+    transform(response: HttpResponse) {
+
+        let cs: string[] = [];
+        for (let key in this._set) {
+            cs.push(this._set[key]);
+        }
+
+        // set the header's Set-Cookie field with the array
+        response.setHeader('Set-Cookie', cs);
+    }
+
+
+
+
     /**
      * Parse the cookies from the request
      */
     private parse() {
 
-        let str = this.context.request.headers['cookies'] as string;
+        let str = this.request.headers['cookies'] as string;
         if (!str) return;
 
         let pairs = str.split(SPLIT_ENTRIES);
@@ -149,7 +161,7 @@ export class HttpCookies {
 
         // check for invalid chars in value
         if (!INVALID_CHAR_TEST.test(value)) {
-            throw new Error('value is invalid');
+            throw new Error(`Cannot set cookie ${name}, the value contains invalid characters`);
         }
 
         let result = name + '=' + value;
@@ -182,4 +194,5 @@ export class HttpCookies {
 
         return result;
     }
+
 }

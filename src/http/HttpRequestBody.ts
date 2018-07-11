@@ -1,6 +1,7 @@
 import { Inject, Injectable, InjectionToken, ObjectUtils } from '@uon/core';
 import { HttpContext } from './HttpContext';
 import { HttpError } from './HttpError';
+import { HttpRequest } from './HttpRequest';
 
 
 // Injection token for the request body raw buffer
@@ -38,10 +39,10 @@ export class HttpRequestBody {
     private _mime: string;
     private _data: any;
 
-    constructor(private context: HttpContext,
+    constructor(private request: HttpRequest,
         @Inject(HTTP_REQUEST_BODY_BUFFER) private _buffer: Buffer) {
 
-        this._mime = context.request.headers['content-type'];
+        this._mime = request.headers['content-type'];
 
     }
 
@@ -67,7 +68,7 @@ export class HttpRequestBody {
         return this._data;
     }
 
- 
+
 
 
 }
@@ -76,18 +77,18 @@ export class HttpRequestBody {
 export const HttpRequestBodyBufferFactory = {
 
     token: HTTP_REQUEST_BODY_BUFFER,
-    factory: (context: HttpContext, config: HttpRequestBodyConfig) => {
+    factory: (request: HttpRequest, config: HttpRequestBodyConfig) => {
 
 
         return new Promise<Buffer>((resolve, reject) => {
 
             // some http methods don't get to have a body
-            if (NO_BODY_METHODS.indexOf(context.request.method) >= 0) {
+            if (NO_BODY_METHODS.indexOf(request.method) >= 0) {
                 return resolve();
             }
 
             // we need a length from the headers
-            let header_length_str = context.request.headers['content-length'];
+            let header_length_str = request.headers['content-length'];
             if (!header_length_str) {
                 return reject(new HttpError(411));
             }
@@ -102,25 +103,26 @@ export const HttpRequestBodyBufferFactory = {
             let body: any[] = [];
 
             // append chunks to the body as they come in
-            context.request.on('data', (chunk) => {
+            request.toReadableStream()
+                .on('data', (chunk) => {
 
-                body.push(chunk);
+                    body.push(chunk);
 
-            }).on('end', () => {
+                }).on('end', () => {
 
-                resolve(Buffer.concat(body));
+                    resolve(Buffer.concat(body));
 
-            }).on('error', (err) => {
+                }).on('error', (err) => {
 
-                reject(err);
-                
-            });
+                    reject(err);
+
+                });
 
 
         });
 
     },
-    deps: [HttpContext, HTTP_REQUEST_BODY_CONFIG]
+    deps: [HttpRequest, HTTP_REQUEST_BODY_CONFIG]
 
 };
 

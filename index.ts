@@ -8,6 +8,8 @@ export { HttpModule } from './src/http/HttpModule';
 export { HttpServer } from './src/http/HttpServer';
 export { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './src/http/HttpConfig';
 export { HttpContext } from './src/http/HttpContext';
+export { HttpRequest } from './src/http/HttpRequest';
+export { HttpResponse } from './src/http/HttpResponse';
 export { HttpAuthorization } from './src/http/HttpAuthorization';
 export { HttpCookies } from './src/http/HttpCookies';
 export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/HttpCache';

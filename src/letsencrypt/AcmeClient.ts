@@ -1,7 +1,4 @@
 
-//const PACKAGE = require('../../package.json');
-//const VERSION = PACKAGE.version;
-
 import * as os from 'os';
 import * as https from 'https';
 import * as child_process from 'child_process';
@@ -80,7 +77,6 @@ export class AcmeClient {
             agreement: this.agreementUrl
         };
 
-        var that = this;
         return this.sendSignedRequest(
             url,
             JSON.stringify(payload)
@@ -380,9 +376,6 @@ export class AcmeClient {
         console.log("Requesting ACME directory");
         return this.makeRequest('GET', this.directoryUrl)
             .then((response) => {
-
-                console.log(response.body);
-
                 this.directory = JSON.parse(response.body.toString('utf8'));
                 this.agreementUrl = this.directory['meta']['terms-of-service'];
             });

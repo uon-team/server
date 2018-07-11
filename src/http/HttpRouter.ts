@@ -13,7 +13,8 @@ import {
     InjectionToken,
     PathUtils,
     META_ANNOTATIONS,
-    META_PROPERTIES
+    META_PROPERTIES,
+    TypeDecorator
 } from '@uon/core';
 
 
@@ -35,6 +36,10 @@ export interface HttpRouter {
     // lower numbers have priority, defaults to 1000
     priority?: number;
 
+    //(options: HttpRouter): TypeDecorator;
+    //new (options: HttpRouter): HttpRouter
+   // (options: HttpRouter): any;
+
 }
 
 /**
@@ -53,7 +58,7 @@ export function HttpRouter(options: HttpRouter) {
 
         if (options.parent) {
 
-            let parent_ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, options.parent, HttpRouter);
+            let parent_ctrl = FindMetadataOfType(META_ANNOTATIONS, options.parent, HttpRouter as any);
 
             if (!parent_ctrl) {
                 throw new Error(`HttpRouter: parent was defined 
@@ -191,7 +196,7 @@ export function RouterFromModuleRefs(moduleRefs: Map<Type<any>, ModuleRef<any>>)
             let decl_type = declarations[i];
 
             let properties = GetMetadata(META_PROPERTIES, decl_type.prototype) || EMPTY_OBJECT;
-            let ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, decl_type, HttpRouter);
+            let ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, decl_type, HttpRouter as any);
 
             if (ctrl) {
 

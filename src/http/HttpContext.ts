@@ -10,10 +10,9 @@ import { HttpError } from './HttpError';
 import { GetHttpContextDefaultProviders } from './HttpConfig';
 import { HttpRouter } from './HttpRouter';
 
+import { HttpResponse } from './HttpResponse';
+import { HttpRequest } from './HttpRequest';
 
-const DEFAULT_OUTGOING_HEADERS = {
-    'X-Powered-By': "UON"
-};
 
 /**
  * Injection for initializing the context prior to execution
@@ -48,14 +47,19 @@ export interface HttpContextOptions {
  */
 export class HttpContext extends EventSource {
 
-    readonly request: IncomingMessage;
-    readonly response: ServerResponse;
+    readonly request: HttpRequest;
+    readonly response: HttpResponse;
     readonly uri: Url;
 
     private _root: Injector;
     private _injector: Injector;
     private _providers: Provider[];
     private _router: Router<HttpRouter>;
+
+
+    private _status: number = 200;
+
+    private _processing: boolean = false;
 
 
     /**
@@ -70,36 +74,13 @@ export class HttpContext extends EventSource {
         this._root = options.injector;
         this._providers = options.providers;
 
-        this.request = options.req;
-        this.response = options.res;
+        this.request = new HttpRequest(options.req);
+        this.response = new HttpResponse(options.res);
 
         this._router = options.router;
 
-        this.uri = ParseUrl(options.req);
-        //this.method = options.req.method;
 
     }
-
-    /**
-     * Whether the connection is secure or not (over https)
-     */
-    get secure(): boolean {
-        return (this.request.connection instanceof TLSSocket);
-    }
-
-    /**
-     * Whether a response was sent, we consider a response sent when at least the headers have been sent
-     */
-    get responseSent(): boolean {
-        return this.response.headersSent || this.response.finished;
-    }
-
-
-    /**
-     * Adds an event listener to be called before the response is sent, 
-     * can be used to set headers and status code
-     */
-    on(type: 'response', callback: (context: HttpContext, headers: OutgoingHttpHeaders) => any, priority?: number): void;
 
     /**
      * Adds an event listener to be called before an error is sent,
@@ -121,18 +102,36 @@ export class HttpContext extends EventSource {
      */
     process() {
 
+        // fool guard
+        if (this._processing) {
+            throw new Error(`You cannot call process(), Bye!`);
+        }
+        this._processing = true;
+
+
+
         // get the app's root router
         const router: Router<HttpRouter> = this._router;
 
         // get the set of matches, if any
-        const matches = router.match(this.uri.pathname, { method: this.request.method });
+        const matches = router.match(this.request.uri.pathname, { method: this.request.method });
 
         // we need a list of providers before we create an injector
         // start with this for a start
-        let providers: Provider[] = [{
-            token: HttpContext,
-            value: this
-        }];
+        let providers: Provider[] = [
+            {
+                token: HttpContext,
+                value: this
+            },
+            {
+                token: HttpResponse,
+                value: this.response
+            },
+            {
+                token: HttpRequest,
+                value: this.request
+            },
+        ];
 
         // get all providers
 
@@ -162,8 +161,6 @@ export class HttpContext extends EventSource {
             // get the parent chain
             let ctrls: Type<any>[] = [];
 
-
-
             // create an injector for the match
             let injector = Injector.Create([], this._injector);
 
@@ -172,10 +169,10 @@ export class HttpContext extends EventSource {
             promise_chain = promise_chain.then(() => {
 
                 // if a response was sent ignore the rest
-                if (this.responseSent) {
+                if (this.response.sent) {
                     return;
                 }
-                m.router.metadata
+
                 // instanciate the controller
                 return injector.instanciateAsync(m.router.type).then((ctrl) => {
 
@@ -192,7 +189,7 @@ export class HttpContext extends EventSource {
         return promise_chain.then(() => {
 
             // if no response was sent from any of the matches, we got a 404
-            if (!this.responseSent) {
+            if (!this.response.sent) {
                 throw new HttpError(404);
             }
 
@@ -204,7 +201,7 @@ export class HttpContext extends EventSource {
             return this.emit('error', this, error).then(() => {
 
                 // that was the final chance to respond
-                if (!this.responseSent) {
+                if (!this.response.sent) {
                     throw error;
                 }
 
@@ -212,109 +209,6 @@ export class HttpContext extends EventSource {
 
         });
 
-    }
-
-
-    /**
-     * Send a response
-     * @param data 
-     * @param statusCode 
-     * @param headers 
-     */
-    send(data: any, statusCode?: number, headers?: OutgoingHttpHeaders) {
-
-
-        if (this.responseSent) {
-            console.warn('Response already sent');
-            return;
-        }
-
-        // default status code 200 if none provided
-        let status = statusCode || 200;
-
-        // merge defaults with provided headers
-        headers = ObjectUtils.extend({}, DEFAULT_OUTGOING_HEADERS, headers);
-
-        // emit the response event so the user can change headers or whatever if he wants
-        return this.emit('response', this, headers).then(() => {
-
-            let is_object = typeof data === 'object'
-
-            // if content type is json and data is an object, stringify before sending
-            if (headers['Content-Type'] === "application/json" && is_object) {
-                data = JSON.stringify(data);
-            }
-            // json content type must be set for object
-            else if (is_object) {
-
-                console.error(`HttpContext.send(): 
-                    You must set Content-Type header to 'application/json' 
-                    if you want to send an object as response`);
-
-                throw new HttpError(500);
-
-            }
-
-            // write the head
-            this.response.writeHead(status, headers);
-            this.response.end(data);
-
-        });
-
-    }
-
-    /**
-     * Pipe a readable stream to the response
-     * @param stream 
-     * @param statusCode 
-     * @param headers 
-     */
-    pipe(stream: ReadStream, statusCode?: number, headers?: OutgoingHttpHeaders) {
-
-        if (this.responseSent) {
-            console.warn('Response already sent');
-            return;
-        }
-
-        // default status code 200 if none provided
-        let status = statusCode || 200;
-
-        // merge defaults with provided headers
-        headers = ObjectUtils.extend({}, DEFAULT_OUTGOING_HEADERS, headers);
-
-        // let the user modify some headers
-        return this.emit('response', this, headers).then(() => {
-
-            // write the http headers
-            this.response.writeHead(status, headers);
-
-            // pipe the stream to the response object
-            stream.pipe(this.response);
-
-        });
-
-    }
-
-    /**
-    * Sends a redirect header
-    * @param location The url to redirect to
-    * @param permanent Whether this is meant to be a permanent redirection (301 vs 302)
-    */
-    redirect(location: string, permanent?: boolean) {
-
-        // create a headers object
-        const headers: OutgoingHttpHeaders = ObjectUtils.extend({}, DEFAULT_OUTGOING_HEADERS);
-
-        // emit response event before redirecting
-        return this.emit('response', this, headers).then(() => {
-
-            this.response.writeHead(permanent === true ? 301 : 302, {
-                'Location': location
-            });
-
-            this.response.end();
-
-        });
     }
 
 
@@ -353,9 +247,5 @@ function GetClientIp(req: IncomingMessage): string {
     return header.split(',')[0] || req.connection.remoteAddress;
 }
 
-
-function ExtractProvidersFromMatches(matches: RouteMatch[], output: any[]) {
-
-}
 
 

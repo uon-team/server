@@ -69,7 +69,8 @@ export function GetHttpContextDefaultProviders() {
         {
             token: HTTP_CACHE_CONFIG,
             value: <HttpCacheConfig>{
-                etagStorage: {}
+                etagStorage: {},
+                expiresDelay: 60 * 60 * 1000
             }
         },
 
@@ -81,7 +82,8 @@ export function GetHttpContextDefaultProviders() {
         {
             token: HTTP_ENCODING_CONFIG,
             value: <HttpEncodingConfig>{
-
+                extensions: ['js', 'css'],
+                storageAdapter: null
             }
         },
 

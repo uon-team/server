@@ -1,4 +1,5 @@
 
+import { Readable, Writable } from 'stream';
 
 export interface FileStat {
     modified?: Date;
@@ -13,6 +14,9 @@ export interface FileStat {
 
 export abstract class FsAdapter {
 
+    abstract createReadStream(path: string, options?: any): Readable;
+
+    abstract createWriteStream(path: string, options?: any): Writable;
 
     abstract read(path: string): Promise<Buffer>;
 
