@@ -92,6 +92,7 @@ export class HttpRange extends HttpTransform {
 
     configure(options: HttpRangeConfigureOptions) {
         this._options = options;
+        return this;
     }
 
 

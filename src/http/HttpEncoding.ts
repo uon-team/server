@@ -56,6 +56,7 @@ export class HttpEncoding extends HttpTransform {
 
     configure(options: HttpEncodingConfigureOptions) {
         this._options = options;
+        return this;
     }
 
     transform(response: HttpResponse) {

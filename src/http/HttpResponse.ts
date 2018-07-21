@@ -79,6 +79,10 @@ export class HttpResponse {
         return this._headers[name];
     }
 
+    /**
+     * Set multiple headers, replacing the ones set previously
+     * @param headers 
+     */
     assignHeaders(headers: OutgoingHttpHeaders) {
         Object.assign(this._headers, headers);
     }
@@ -124,6 +128,10 @@ export class HttpResponse {
 
 
 
+    /**
+     * Use a transform in the pipeline
+     * @param transform 
+     */
     use(transform: HttpTransform) {
 
         this._transforms.push(transform);

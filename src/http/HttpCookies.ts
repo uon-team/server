@@ -90,6 +90,7 @@ export class HttpCookies extends HttpTransform {
 
     configure(options: any) {
 
+        return this;
     }
 
     transform(response: HttpResponse) {
@@ -111,7 +112,7 @@ export class HttpCookies extends HttpTransform {
      */
     private parse() {
 
-        let str = this.request.headers['cookies'] as string;
+        let str = this.request.headers['cookie'] as string;
         if (!str) return;
 
         let pairs = str.split(SPLIT_ENTRIES);

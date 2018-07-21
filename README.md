@@ -1,6 +1,6 @@
 # UON SERVER
 
-A full-featured web server written in Typescript with Let's Encrypt support. This package is made for the @uon/core application architecture.
+A full-featured web server written in Typescript with Let's Encrypt support. This package is based on the @uon/core application architecture.
 
 
 ## Usage
@@ -8,6 +8,12 @@ A full-featured web server written in Typescript with Let's Encrypt support. Thi
 ```shell
     npm i @uon/server
 ```
+
+## Anatomy of a @uon/server application
+
+
+
+
 
 ## Http Module
 

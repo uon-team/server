@@ -74,8 +74,10 @@ export class LetsEncryptService {
                     }
 
 
+                    let must_renew = cert && cert.renewBy.getTime() < Date.now();
+
                     // didnt find cert or cert is (nearly) expired
-                    if (!cert || (cert && cert.renewBy.getTime() < Date.now())) {
+                    if (!cert || must_renew) {
 
                         promises.push(this.createCertificate(domain));
 
@@ -251,7 +253,7 @@ export class LetsEncryptService {
 
         return Promise.all(promises).then((values) => {
 
-            return values.filter((v) => {v != null});
+            return values.filter((v) => { return v != null });
         });
     }
 

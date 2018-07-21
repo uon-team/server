@@ -64,6 +64,8 @@ export class HttpCache extends HttpTransform {
      */
     configure(options: HttpCacheTransformOptions) {
         this._options = options;
+
+        return this;
     }
 
     /**

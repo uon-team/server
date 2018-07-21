@@ -108,8 +108,6 @@ export class HttpContext extends EventSource {
         }
         this._processing = true;
 
-
-
         // get the app's root router
         const router: Router<HttpRouter> = this._router;
 
@@ -174,11 +172,11 @@ export class HttpContext extends EventSource {
                 }
 
                 // instanciate the controller
-                return injector.instanciateAsync(m.router.type).then((ctrl) => {
-
-                    // call the method on the controller
-                    return ctrl[method_key](m.params);
-                });
+                return injector.instanciateAsync(m.router.type)
+                    .then((ctrl) => {
+                        // call the method on the controller
+                        return ctrl[method_key](m.params);
+                    });
 
             });
 
@@ -186,28 +184,31 @@ export class HttpContext extends EventSource {
         });
 
         // return the promise chain
-        return promise_chain.then(() => {
+        return promise_chain
+            .then(() => {
 
-            // if no response was sent from any of the matches, we got a 404
-            if (!this.response.sent) {
-                throw new HttpError(404);
-            }
-
-        }).catch((err) => {
-
-            let error = err instanceof HttpError ?
-                err : new HttpError(500, null, JSON.stringify(err.stack));
-
-            return this.emit('error', this, error).then(() => {
-
-                // that was the final chance to respond
+                // if no response was sent from any of the matches, we got a 404
                 if (!this.response.sent) {
-                    throw error;
+                    throw new HttpError(404);
                 }
 
-            });
+            })
+            .catch((err) => {
 
-        });
+                let error = err instanceof HttpError ?
+                    err : new HttpError(500, null, JSON.stringify(err.stack));
+
+                return this.emit('error', this, error)
+                    .then(() => {
+
+                        // that was the final chance to respond
+                        if (!this.response.sent) {
+                            throw error;
+                        }
+
+                    });
+
+            });
 
     }
 

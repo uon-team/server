@@ -115,10 +115,12 @@ export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter
                 }
 
                 try {
-                    let obj = JSON.parse(buffer.toString());
+                    let obj = JSON.parse(buffer);
                     resolve(obj);
                 }   
                 catch(ex) {
+
+                    console.warn(ex);
                     return resolve(null);
                 }
 

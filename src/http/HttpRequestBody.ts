@@ -11,7 +11,7 @@ export const HTTP_REQUEST_BODY_BUFFER = new InjectionToken<Buffer>("Http Request
 export const HTTP_REQUEST_BODY_CONFIG = new InjectionToken<HttpRequestBodyConfig>("Http Request Body Config");
 
 // some http methods cannot have a body, we keep a list so we can ignore them
-const NO_BODY_METHODS = ['GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
+const NO_BODY_METHODS = ['DELETE', 'OPTIONS', 'GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
 
 
 
