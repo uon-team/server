@@ -1,6 +1,6 @@
 {
   "name": "@uon/server",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "An HTTP server application framework with Let's Encrypt integration.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "mime-types": "^2.1.17",
-    "@uon/core" : "^0.1.0"
+    "@uon/core": "^0.1.1"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.0",

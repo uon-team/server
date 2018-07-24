@@ -120,7 +120,7 @@ export class AcmeClient {
                 throw new Error(`Failed to register user. Expecting 201, got ${result.statusCode}, ${result.body}`);
             }
 
-            console.log('registerAccount: registered user %s', this.account.email);
+            //console.log('registerAccount: registered user %s', this.account.email);
 
         });
 
@@ -183,8 +183,6 @@ export class AcmeClient {
         var thumbprint = UrlBase64Encode(shasum.digest('base64'));
         var key_auth = token + '.' + thumbprint;
 
-        console.log(`prepareHttpChallenge: generated ${key_auth}`);
-
         // return our own generated challenge
         return {
             token: token,
@@ -234,55 +232,57 @@ export class AcmeClient {
         const retry_func = (count: number): Promise<boolean> => {
 
             // throw on max retries reached
-            if(count >= max_count) {
+            if (count >= max_count) {
                 throw new Error('Max retry count reached.')
             }
 
             // make the request
-            return this.makeRequest('GET', challengeUri).then((result) => {
+            return this.makeRequest('GET', challengeUri)
+                .then((result) => {
 
-                // check for a valid status code
-                if (result.statusCode !== 202) {
-                    console.log('waitForChallenge: invalid response code getting uri %s', result.statusCode);
-                    throw new Error('Bad response code:' + result.statusCode);
-                }
+                    // check for a valid status code
+                    if (result.statusCode !== 202) {
+                        console.log('waitForChallenge: invalid response code getting uri %s', result.statusCode);
+                        throw new Error('Bad response code:' + result.statusCode);
+                    }
 
-                // parse the response body
-                let body = JSON.parse(result.body.toString('utf8'));
+                    // parse the response body
+                    let body = JSON.parse(result.body.toString('utf8'));
 
-                // Challenge is still pending, retry
-                if (body.status === 'pending') {
-                   return retry_func(try_count++);
-                }
-                // challenge has passed, we can continue
-                else if (body.status === 'valid') {
-                    return true;
-                }
-                // challenge is invalid, we cannot continue
-                else if (body.status === 'invalid') {
-                    return false;
-                }
+                    // Challenge is still pending, retry
+                    if (body.status === 'pending') {
+                        return retry_func(try_count++);
+                    }
+                    // challenge has passed, we can continue
+                    else if (body.status === 'valid') {
+                        return true;
+                    }
+                    // challenge is invalid, we cannot continue
+                    else if (body.status === 'invalid') {
+                        return false;
+                    }
 
-            });
+                });
 
 
         };
 
         return new Promise((resolve, reject) => {
 
-            retry_func(try_count++).then((result) => {
+            retry_func(try_count++)
+                .then((result) => {
 
-                // when result is false, we have and invalid status
-                if(!result) {
-                   return reject(new Error('Challenge failed'));
-                }
+                    // when result is false, we have and invalid status
+                    if (!result) {
+                        return reject(new Error('Challenge failed'));
+                    }
 
-                // otherwise it's all good
-                resolve();
-                
-            })
-            // reject on any error
-            .catch(reject);
+                    // otherwise it's all good
+                    resolve();
+
+                })
+                // reject on any error
+                .catch(reject);
 
         });
 
@@ -329,15 +329,16 @@ export class AcmeClient {
             // convert from der to pem
             let certificate_pem = DER2PEM(res.body);
 
-            return this.downloadChain(res.headers['link'] as string).then((chain) => {
+            return this.downloadChain(res.headers['link'] as string)
+                .then((chain) => {
 
-                // set cert buffer in certificate object
-                let full_chain = Buffer.concat([certificate_pem, chain]);
+                    // set cert buffer in certificate object
+                    let full_chain = Buffer.concat([certificate_pem, chain]);
 
-                // save and return certificate object
-                return full_chain;
+                    // save and return certificate object
+                    return full_chain;
 
-            });
+                });
 
 
         });
@@ -357,13 +358,14 @@ export class AcmeClient {
 
         let intermediate_cert_url = link_info.up.startsWith('https://') ? link_info.up : (this.baseUrl + link_info.up);
 
-        return this.makeRequest('GET', intermediate_cert_url).then((res) => {
+        return this.makeRequest('GET', intermediate_cert_url)
+            .then((res) => {
 
-            // convert from der to pem
-            let chain_pem = DER2PEM(res.body);
+                // convert from der to pem
+                let chain_pem = DER2PEM(res.body);
 
-            return chain_pem;
-        });
+                return chain_pem;
+            });
 
 
     }
@@ -388,16 +390,17 @@ export class AcmeClient {
      */
     private getNonce(): Promise<string> {
 
-        return this.makeRequest('HEAD', this.directoryUrl).then((response) => {
+        return this.makeRequest('HEAD', this.directoryUrl)
+            .then((response) => {
 
-            if (response && 'replay-nonce' in response.headers) {
+                if (response && 'replay-nonce' in response.headers) {
 
-                return response.headers['replay-nonce'] as string;
-            }
-            else {
-                throw new Error('Failed to get nonce from response');
-            }
-        });
+                    return response.headers['replay-nonce'] as string;
+                }
+                else {
+                    throw new Error('Failed to get nonce from response');
+                }
+            });
 
     }
 
@@ -473,41 +476,42 @@ export class AcmeClient {
         let payload64 = Base64Encode(payload);
 
         // get a nonce for the request
-        return this.getNonce().then((nonce) => {
+        return this.getNonce()
+            .then((nonce) => {
 
-            console.log('sendSignedRequest: using nonce %s for url %s', nonce, url);
+                //console.log('sendSignedRequest: using nonce %s for url %s', nonce, url);
 
-            // encode the protected headers
-            let protected64 = Base64Encode(
-                JSON.stringify(ObjectUtils.extend({}, header, { nonce: nonce }))
-            );
+                // encode the protected headers
+                let protected64 = Base64Encode(
+                    JSON.stringify(ObjectUtils.extend({}, header, { nonce: nonce }))
+                );
 
-            // create a signer
-            let signer = crypto
-                .createSign('RSA-SHA256')
-                .update(protected64 + '.' + payload64, 'utf8');
+                // create a signer
+                let signer = crypto
+                    .createSign('RSA-SHA256')
+                    .update(protected64 + '.' + payload64, 'utf8');
 
-            // get a signature
-            let signature64 = UrlBase64Encode(
-                signer.sign(this.account.pem, 'base64')
-            );
+                // get a signature
+                let signature64 = UrlBase64Encode(
+                    signer.sign(this.account.pem, 'base64')
+                );
 
-            // build the request data object
-            let data = {
-                header: header,
-                protected: protected64,
-                payload: payload64,
-                signature: signature64
-            };
+                // build the request data object
+                let data = {
+                    header: header,
+                    protected: protected64,
+                    payload: payload64,
+                    signature: signature64
+                };
 
-            // finally make the request
-            return this.makeRequest('POST', url, JSON.stringify(data, null, 2))
-                .then((response) => {
+                // finally make the request
+                return this.makeRequest('POST', url, JSON.stringify(data, null, 2))
+                    .then((response) => {
 
-                    return response;
-                });
+                        return response;
+                    });
 
-        });
+            });
     }
 }
 

@@ -19,7 +19,7 @@ export { HttpError } from './src/http/HttpError';
 
 // fs exports
 export { FsModule } from './src/fs/FsModule';
-export { FsAdapter } from './src/fs/FsAdapter';
+export { FsAdapter, FileStat } from './src/fs/FsAdapter';
 export { FsConfig, FsAdapterConfig, FS_CONFIG } from './src/fs/FsConfig';
 export { LocalFsAdapter } from './src/fs/adapters/LocalFsAdapter';
 

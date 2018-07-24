@@ -10,9 +10,6 @@ export interface LetsEncryptConfig {
     // The let's encrypt endpoint
     environment?: 'production' | 'staging',
 
-    // the storage strategy fro accounts and certificates
-    storage?: any;
-
     // the account email address
     account: string,
 
@@ -22,7 +19,7 @@ export interface LetsEncryptConfig {
     // The storage adapter for accounts, certificates and challenges
     storageAdapter: LetsEncryptStorageAdapter;
 
-    // a temp dir to store temporary files
-    tempDir: string;
+    // a temp dir to store temporary files, defaults to os.tmpdir()
+    tempDir?: string;
 
 }

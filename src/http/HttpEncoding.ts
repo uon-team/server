@@ -17,23 +17,51 @@ export const HTTP_ENCODING_CONFIG = new InjectionToken<HttpEncodingConfig>("Http
  * Configuration for content encoding
  */
 export interface HttpEncodingConfig {
-    //handlers: any[];
+
+    /**
+     * A list of extentions to handle, defaults to ['js', 'css']
+     */
     extensions: string[];
+
+    /**
+     * A storage adapter to store gzipped files
+     */
     storageAdapter: FsAdapter;
 
 }
 
+
+/**
+ * The encoding transform configuration for the request
+ */
 export interface HttpEncodingConfigureOptions {
+    /**
+     * The adapter where the original uncompressed file was accessed
+     */
     srcAdapter?: FsAdapter;
+
+    /**
+     * The path into the srcAdapter where the uncompressed file is located
+     */
     srcPath?: string;
 }
 
 
-
+/**
+ * Handles gzip compression for supported files (ie. text files)
+ * 
+ * The resulting compressed files are stored in the folder defined by the destination
+ * storage adapter with the name ${orginalFileName.ext}.gz.${originalModifiedAt}
+ * 
+ * If the original file changes a new .gz file will be created.
+ * Only gzip compression is implemented at this time
+ * 
+ * TODO: Implement stale .gz files cleanup 
+ */
 @Injectable()
 export class HttpEncoding extends HttpTransform {
 
-    // the encoding methods
+    // the accepted encoding methods sent in the request
     readonly accept: string[];
 
     private _options: HttpEncodingConfigureOptions;
@@ -54,11 +82,20 @@ export class HttpEncoding extends HttpTransform {
 
     }
 
+    /**
+     * HttpTransform configure implementation
+     * @param options 
+     */
     configure(options: HttpEncodingConfigureOptions) {
         this._options = options;
         return this;
     }
 
+
+    /**
+     * HttpTransform transform implementation
+     * @param response 
+     */
     transform(response: HttpResponse) {
 
         // must be configured
@@ -76,30 +113,42 @@ export class HttpEncoding extends HttpTransform {
                 return;
             }
 
+            // get the stats for the original file
             return src_adapter.stat(src_path)
                 .then((srcStats) => {
 
+                    // shortcut to the destination adapter
                     const dest_adapter = this.config.storageAdapter;
+
+                    // compute file name for the gz file
                     const dest_path = `${this._options.srcPath}.gz.${Math.floor(srcStats.modified.getTime() / 1000)}`;
 
                     let final_stats: FileStat;
 
+                    // get stats for the gz file
                     return dest_adapter.stat(dest_path)
                         .then((destStats) => {
 
+                            // got stats
                             final_stats = destStats;
+
+                            // return a read stream to it
                             return dest_adapter.createReadStream(dest_path);
 
                         })
                         .catch((err) => {
 
+                            // file doesn't exist, we need to gzip the orginal
                             return new Promise<Readable>((resolve, reject) => {
 
+                                // read, compress and save result
                                 src_adapter.createReadStream(src_path)
                                     .pipe(createGzip())
                                     .pipe(dest_adapter.createWriteStream(dest_path))
                                     .on('finish', () => {
 
+                                        // we need the stats for the new file
+                                        // so we can set the headers
                                         dest_adapter.stat(dest_path)
                                             .then((destStats) => {
                                                 final_stats = destStats;
@@ -116,6 +165,7 @@ export class HttpEncoding extends HttpTransform {
                         })
                         .then((stream) => {
 
+                            // all done, set headers and input stream
                             response.setHeader('Content-Encoding', 'gzip');
                             response.setHeader('Content-Length', final_stats.size);
                             response.setInputSteam(stream);

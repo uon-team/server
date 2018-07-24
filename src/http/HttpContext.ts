@@ -57,8 +57,6 @@ export class HttpContext extends EventSource {
     private _router: Router<HttpRouter>;
 
 
-    private _status: number = 200;
-
     private _processing: boolean = false;
 
 
@@ -104,7 +102,7 @@ export class HttpContext extends EventSource {
 
         // fool guard
         if (this._processing) {
-            throw new Error(`You cannot call process(), Bye!`);
+            throw new Error(`You cannot call process() twice.`);
         }
         this._processing = true;
 

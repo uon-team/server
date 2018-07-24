@@ -17,17 +17,29 @@ export const HTTP_RANGE_CONFIG = new InjectionToken("Http Range Config");
  */
 export interface HttpRangeConfig {
 
-    // the maximum chunk size in bytes 
+    /**
+     * The maximum chunk size in bytes 
+     */
     maxChunkSize: number;
 
-    // the file types which support range requests
+    /**
+     * the file types which support range requests
+     */
     extensions: string[];
 
 }
 
 
 export interface HttpRangeConfigureOptions {
+    
+    /**
+     * The adapter where the file is to be accessed
+     */
     srcAdapter: FsAdapter;
+
+    /**
+     * The path where th file is located, relative to srcAdapter
+     */
     srcPath: string;
 }
 

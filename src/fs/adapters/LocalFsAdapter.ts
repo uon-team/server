@@ -9,7 +9,19 @@ import { Readable, Writable } from 'stream';
 
 
 export interface LocalFsConfig {
+
+    /**
+     * The path on the local file system from which
+     * all given paths are relative
+     */
     basePath: string;
+
+    /**
+     * If set to true, directories will be created when writing
+     * a file to a path that doesn't exist.
+     * 
+     * Otherwise, write() and createWriteStream() will throw
+     */
     forceDirCreationOnWrite?: boolean;
 }
 
@@ -36,6 +48,12 @@ export class LocalFsAdapter implements FsAdapter {
     createWriteStream(path: string, options?: any): Writable {
 
         const filepath = _path.join(this.config.basePath, SanitizePath(path));
+
+         // make sure dir exists if config permits it
+         if (this.config.forceDirCreationOnWrite) {
+            EnsureDirectoryExistence(filepath);
+        }
+
 
         return fs.createWriteStream(filepath, options);
 

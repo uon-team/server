@@ -14,17 +14,49 @@ const DEFAULT_SET_COOKIE_OPTIONS = {
 };
 
 export interface CookieSetOptions {
+
+    /**
+     * The date when the cookie is meant to expire
+     */
     expires?: Date;
+
+    /**
+     * The maximum lifetime of the cookie
+     */
     maxAge?: number;
+
+    /**
+     * The domain where this cookie is valid 
+     */
     domain?: string;
+
+    /**
+     * The path where this cookie is valid
+     */
     path?: string;
+
+    /**
+     * Whether this cookie is HTTP only. 
+     * An HttpOnly cookie cannot be retrived with Javascript on the client side
+     */
     httpOnly?: boolean;
+
+    /**
+     * This is set to true automatically if the request originated from HTTPS
+     */
     secure?: boolean;
+
+    /**
+     * Whether this is a session cookie (ie. is deleted when the browser closes)
+     */
     session?: boolean;
 
 }
 
-
+/**
+ * Cookie manipulation interface, it parses cookies from the request header
+ * and allows you to set cookies
+ */
 @Injectable()
 export class HttpCookies extends HttpTransform {
 
@@ -57,14 +89,10 @@ export class HttpCookies extends HttpTransform {
 
         const opts = ObjectUtils.extend({}, DEFAULT_SET_COOKIE_OPTIONS, options);
         opts.secure = this.request.secure;
-    
+
         try {
             let result = this.serialize(name, value, opts);
-
             this._set[name] = result;
-
-            //let list = this.getSetCookieArray();
-            //list.push(result);
         }
         catch (ex) {
             console.warn(`Invalid set cookie ${name} = ${value}`);
@@ -88,11 +116,6 @@ export class HttpCookies extends HttpTransform {
     }
 
 
-    configure(options: any) {
-
-        return this;
-    }
-
     transform(response: HttpResponse) {
 
         let cs: string[] = [];
@@ -103,7 +126,6 @@ export class HttpCookies extends HttpTransform {
         // set the header's Set-Cookie field with the array
         response.setHeader('Set-Cookie', cs);
     }
-
 
 
 

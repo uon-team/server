@@ -11,6 +11,8 @@ import { GenerateRSA, GenerateCSR, Base64Encode } from './Utils';
 
 import * as _path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
+
 
 
 const ACME_PROD = 'https://acme-v01.api.letsencrypt.org';
@@ -26,6 +28,9 @@ export class LetsEncryptService {
         @Inject(LE_CONFIG) private config: LetsEncryptConfig,
         @Optional() private log: LogService) {
 
+        // default for tempDir
+        config.tempDir = config.tempDir || os.tmpdir();
+
         // get the storage adapter
         this.storageAdapter = config.storageAdapter;
 
@@ -37,63 +42,68 @@ export class LetsEncryptService {
     getCertificates()/*: Promise<Certificate[]>*/ {
 
         // get the account first
-        return this.storageAdapter.getAccount(this.config.account).then((account) => {
+        return this.storageAdapter.getAccount(this.config.account)
+            .then((account) => {
 
-            // no account found, we need to create one
-            if (!account) {
-                account = this.createAccount(this.config.account);
-                return this.storageAdapter.saveAccount(account);
-            }
+                // no account found, we need to create one
+                if (!account) {
+                    account = this.createAccount(this.config.account);
+                    return this.storageAdapter.saveAccount(account);
+                }
 
-            return account;
+                return account;
 
-        }).then((account) => {
+            })
+            .then((account) => {
 
-            // now that we have an account, create the acme client
-            this.acmeClient = new AcmeClient(account, this.config.environment == 'production' ? ACME_PROD : ACME_STAGING);
+                // now that we have an account, create the acme client
+                this.acmeClient = new AcmeClient(account, this.config.environment == 'production' ? ACME_PROD : ACME_STAGING);
 
-            // init the acme client, this will fetch the acme directory
-            return this.acmeClient.init();
+                // init the acme client, this will fetch the acme directory
+                return this.acmeClient.init();
 
-        }).then(() => {
+            })
+            .then(() => {
 
-            // now lets get the certificates
-            return this.loadCertificates(this.config.domains).then((certs) => {
+                // now lets get the certificates
+                return this.loadCertificates(this.config.domains)
+                    .then((certs) => {
 
-                let promises: Promise<Certificate>[] = [];
+                        let promises: Promise<Certificate>[] = [];
 
-                // check our domains list and make sure we have all certificates
-                this.config.domains.forEach((domain) => {
+                        // check our domains list and make sure we have all certificates
+                        this.config.domains.forEach((domain) => {
 
-                    let cert: Certificate = null;
-                    for (let i = 0; i < certs.length; ++i) {
-                        if (certs[i].domain === domain && certs[i].cert) {
-                            cert = certs[i];
-                            break;
-                        }
-                    }
+                            let cert: Certificate = null;
+                            for (let i = 0; i < certs.length; ++i) {
+                                if (certs[i].domain === domain && certs[i].cert) {
+                                    cert = certs[i];
+                                    break;
+                                }
+                            }
 
 
-                    let must_renew = cert && cert.renewBy.getTime() < Date.now();
+                            let must_renew = cert && cert.renewBy.getTime() < Date.now();
 
-                    // didnt find cert or cert is (nearly) expired
-                    if (!cert || must_renew) {
+                            // didnt find cert or cert is (nearly) expired
+                            if (!cert || must_renew) {
 
-                        promises.push(this.createCertificate(domain));
+                                promises.push(this.createCertificate(domain));
 
-                    } else {
-                        promises.push(Promise.resolve(cert));
-                    }
+                            } else {
+                                promises.push(Promise.resolve(cert));
+                            }
 
-                });
+                        });
 
-                return Promise.all(promises).then((values) => {
-                    return values;
-                });
+                        return Promise.all(promises)
+                            .then((values) => {
+                                return values;
+                            });
+
+                    });
 
             });
-
-        });
 
     }
 
@@ -117,19 +127,15 @@ export class LetsEncryptService {
 
         let parts = req.url.split('.well-known/acme-challenge/');
         let token = parts[1];
-        console.log('got request', req.url, token);
 
         return this.config.storageAdapter.getChallenge(token).then((c) => {
 
             if (!c) {
                 res.writeHead(404);
                 res.end("Not Found");
-                console.log('Not Found', req.url, token);
                 return;
             }
 
-
-            console.log('Replying with', req.url, token);
             res.writeHead(200);
             res.end(c.keyauth);
 

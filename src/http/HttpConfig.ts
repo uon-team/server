@@ -15,19 +15,29 @@ export const HTTP_CONFIG = new InjectionToken<HttpConfig>('HTTP Configuration');
  */
 export interface HttpConfig {
 
-    // the port to listen to on the https server, defaults to 4433
+    /**
+     * the port to listen to on the https server, defaults to 4433
+     */
     port?: number;
 
-    // the port to listen to for non-secure http, defaults to 8080
+    /**
+     * the port to listen to for non-secure http, defaults to 8080
+     */
     plainPort?: number;
 
-    // an ip/range to listen to on the host, defaults to 0.0.0.0 (everywhere)
+    /**
+     * an ip/range to listen to on the host, defaults to 0.0.0.0 (everywhere)
+     */
     host?: string;
 
-    // if set, every request will be redirected to the specified domain, useful for forcing www prefix or the opposite
+    /**
+     * if set, every request will be redirected to the specified domain, useful for forcing www prefix or the opposite
+     */
     forceDomain?: string;
 
-    // a list of extra providers for the request-scoped injector
+    /**
+     * a list of extra providers for the request-scoped injector
+     */
     providers?: Provider[];
 
 }

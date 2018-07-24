@@ -144,7 +144,6 @@ export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter
 
             });
 
-
         });
     }
 }

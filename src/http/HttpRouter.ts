@@ -23,22 +23,30 @@ export const HTTP_ROUTER = new InjectionToken<Router<HttpRouter>>("Default Http 
 
 export interface HttpRouter {
 
-    // optional router name
+    /**
+     * optional router name
+     */
     name?: string;
 
-    // the router's parent router
+    /**
+     * the router's parent router
+     */
     parent?: Type<any>;
 
-    // the base path for route handling
+    /**
+     * the base path for route handling
+     */
     path?: string;
 
-    // the order in which the routers are executed
-    // lower numbers have priority, defaults to 1000
+    /**
+     * the order in which the routers are executed
+     * lower numbers have priority, defaults to 1000
+     */
     priority?: number;
 
     //(options: HttpRouter): TypeDecorator;
     //new (options: HttpRouter): HttpRouter
-   // (options: HttpRouter): any;
+    // (options: HttpRouter): any;
 
 }
 
@@ -94,13 +102,19 @@ export function HttpRouter(options: HttpRouter) {
 
 export interface HttpRoute {
 
-    // an HTTP method, can be an array
+    /**
+     * an HTTP method, can be an array
+     */
     method?: string | string[];
 
-    // The path regexp to test
+    /**
+     * The path regexp to test
+     */
     path: string;
 
-    // the method name, do not set this as it with be overridden
+    /**
+     * the method name, do not set this as it with be overridden
+     */
     key?: string;
 
 
@@ -168,9 +182,9 @@ const EMPTY_OBJECT: any = {};
 const EMPTY_ARRAY: any[] = [];
 
 /**
-    * Create a Router hierachy from 
-    * @param refs 
-    */
+ * Creates a Router hierachy from declarations in loaded application modules
+ * @param refs 
+ */
 export function RouterFromModuleRefs(moduleRefs: Map<Type<any>, ModuleRef<any>>): Router<HttpRouter> {
 
     const match_method = (ri: RouteInfo<HttpRoute>, d: any) => {
@@ -212,7 +226,7 @@ export function RouterFromModuleRefs(moduleRefs: Map<Type<any>, ModuleRef<any>>)
                                 let param_keys: string[] = [];
 
                                 // build regex
-                                let regex = PathUtils.pathToRegex(PathUtils.join(ctrl.path, h.path) || '/' , param_keys) ;
+                                let regex = PathUtils.pathToRegex(PathUtils.join(ctrl.path, h.path) || '/', param_keys);
 
                                 handlers.push({
                                     regex: regex,

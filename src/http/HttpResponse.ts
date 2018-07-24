@@ -4,10 +4,6 @@ import { read } from "fs";
 import { HttpTransform } from "./HttpTransform";
 
 
-export interface ResponseTransformer {
-    apply(response: HttpResponse): any;
-}
-
 
 /**
  * Interface for manipulation the server response
@@ -21,7 +17,7 @@ export class HttpResponse {
 
     private _statusCode: number = 200;
     private _headers: OutgoingHttpHeaders = {
-        "X-Powered-By": 'UON'
+        //"X-Powered-By": 'UON'
     };
 
 

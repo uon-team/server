@@ -18,7 +18,16 @@ export interface HttpCacheConfig {
 
 
 export interface HttpCacheTransformOptions {
+
+    /**
+     * The number of seconds from now that the client should cache
+     * the resource, without making a new request
+     */
     expiresIn?: number;
+
+    /**
+     * Sets the Last-Modified header to the date specified
+     */
     lastModified?: Date;
 }
 
