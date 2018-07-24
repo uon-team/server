@@ -8,10 +8,12 @@ import { TLSSocket } from "tls";
 export class HttpRequest {
 
     private _uri: Url;
+    private _clientIp: string;
 
     constructor(private _request: IncomingMessage) {
 
         this._uri = ParseUrl(_request);
+        this._clientIp = GetClientIp(_request);
     }
 
     /**
@@ -33,6 +35,13 @@ export class HttpRequest {
      */
     get uri() {
         return this._uri;
+    }
+
+    /**
+     * The requester's ip address
+     */
+    get clientIp() {
+        return this._clientIp;
     }
 
     /**
@@ -75,4 +84,14 @@ function ParseUrl(req: IncomingMessage) {
     uri.port = port;
 
     return uri;
+}
+
+/**
+ * @private
+ * @param req 
+ */
+function GetClientIp(req: IncomingMessage): string {
+
+    let header: string = Array.isArray(req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'][0] : '';
+    return header.split(',')[0] || req.connection.remoteAddress;
 }

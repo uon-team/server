@@ -13,6 +13,8 @@ export abstract class HttpTransform {
     }
 
     /**
+     * Transforms a response object
+     * 
      * Subclasses must implement this
      * @param response 
      */

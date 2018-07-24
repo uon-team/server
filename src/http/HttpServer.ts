@@ -1,19 +1,27 @@
 
 
-import { Injectable, Inject, Optional, EventSource, Injector, ModuleRef, Router, RouteMatch, Provider } from '@uon/core';
+import { Injectable, Inject, Optional, EventSource, Injector, ModuleRef, Router, RouteMatch, Provider, InjectionToken } from '@uon/core';
 import { Server, IncomingMessage, ServerResponse } from 'http';
 import * as https from 'https';
 import * as tls from 'tls';
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { LetsEncryptService } from '../letsencrypt/LetsEncryptService';
-import { LogService } from '../log/LogService';
 import { HttpContext } from './HttpContext';
 import { HttpError } from './HttpError';
 import { HTTP_ROUTER, HttpRouter } from './HttpRouter';
+import { Log } from '../log/Log';
 
 
+/**
+ * 
+ */
+export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requests");
 
+
+/**
+ * 
+ */
 @Injectable()
 export class HttpServer extends EventSource {
 
@@ -26,7 +34,7 @@ export class HttpServer extends EventSource {
 
     constructor(@Inject(HTTP_CONFIG) private config: HttpConfig,
         @Optional() private letsencrypt: LetsEncryptService,
-        @Optional() private log: LogService,
+        @Optional() @Inject(HTTP_ACCESS_LOG) private accessLog: Log,
         private injector: Injector) {
 
         super();
@@ -81,41 +89,42 @@ export class HttpServer extends EventSource {
         if (this.letsencrypt) {
 
             // get certificates from the service
-            return this.letsencrypt.getCertificates().then((certs) => {
+            return this.letsencrypt.getCertificates()
+                .then((certs) => {
 
-                // build the secure context map by domain
-                const secure_contexts: any = {};
-                certs.forEach((c) => {
-                    secure_contexts[c.domain] = tls.createSecureContext({
-                        key: c.key,
-                        cert: c.cert
+                    // build the secure context map by domain
+                    const secure_contexts: any = {};
+                    certs.forEach((c) => {
+                        secure_contexts[c.domain] = tls.createSecureContext({
+                            key: c.key,
+                            cert: c.cert
+                        });
                     });
+
+                    // define the ssl options
+                    const ssl_options: https.ServerOptions = {
+                        SNICallback: (domain, cb) => {
+                            cb(!secure_contexts[domain] ? new Error(`No certificate for ${domain}`) : null, secure_contexts[domain]);
+                        },
+                        key: certs[0].key,
+                        cert: certs[0].cert
+                    };
+
+                    // create the https service
+                    this._https = https.createServer(ssl_options, this.handleRequest.bind(this));
+
+                    // listen to incoming connections
+                    this._https.listen(this.config.port, this.config.host, (err: Error) => {
+                        if (err) {
+                            throw err;
+                        }
+
+                        console.log(`HTTPS server listening on ${this.config.host}:${this.config.port}`);
+                    });
+
+                    return this;
+
                 });
-
-                // define the ssl options
-                const ssl_options: https.ServerOptions = {
-                    SNICallback: (domain, cb) => {
-                        cb(!secure_contexts[domain] ? new Error(`No certificate for ${domain}`) : null, secure_contexts[domain]);
-                    },
-                    key: certs[0].key,
-                    cert: certs[0].cert
-                };
-
-                // create the https service
-                this._https = https.createServer(ssl_options, this.handleRequest.bind(this));
-
-                // listen to incoming connections
-                this._https.listen(this.config.port, this.config.host, (err: Error) => {
-                    if (err) {
-                        throw err;
-                    }
-
-                    console.log(`HTTPS server listening on ${this.config.host}:${this.config.port}`);
-                });
-
-                return this;
-
-            });
 
         }
 
@@ -150,6 +159,8 @@ export class HttpServer extends EventSource {
      * @param res 
      */
     private handleRequest(req: IncomingMessage, res: ServerResponse) {
+
+        const current_time = Date.now();
 
         // shortcut to config
         const config = this.config;
@@ -203,6 +214,21 @@ export class HttpServer extends EventSource {
         }).then(() => {
 
             // all done
+            if(this.accessLog) {
+
+                const res = http_context.response;
+                const req = http_context.request;
+
+                const time_ms = `${Date.now() - current_time}ms`;
+                
+                this.accessLog.log(
+                    res.statusCode, 
+                    req.method,
+                    req.uri.path, 
+                    req.clientIp, 
+                    time_ms);
+                
+            }
 
         });
 

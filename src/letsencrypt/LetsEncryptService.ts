@@ -2,12 +2,13 @@
 import { Injectable, Inject, Optional } from '@uon/core';
 
 import { LetsEncryptConfig, LE_CONFIG } from './LetsEncryptConfig';
-import { LogService } from '../log/LogService';
 import { Certificate, Account } from './Models';
 import { IncomingMessage, ServerResponse } from 'http';
 import { AcmeClient } from './AcmeClient';
 import { LetsEncryptStorageAdapter } from './StorageAdapter';
 import { GenerateRSA, GenerateCSR, Base64Encode } from './Utils';
+
+import { isMaster } from 'cluster';
 
 import * as _path from 'path';
 import * as fs from 'fs';
@@ -24,9 +25,7 @@ export class LetsEncryptService {
     private acmeClient: AcmeClient;
     private storageAdapter: LetsEncryptStorageAdapter;
 
-    constructor(
-        @Inject(LE_CONFIG) private config: LetsEncryptConfig,
-        @Optional() private log: LogService) {
+    constructor(@Inject(LE_CONFIG) private config: LetsEncryptConfig) {
 
         // default for tempDir
         config.tempDir = config.tempDir || os.tmpdir();
@@ -34,10 +33,12 @@ export class LetsEncryptService {
         // get the storage adapter
         this.storageAdapter = config.storageAdapter;
 
+    
     }
 
     /**
      * Retrieve certitificate for the domains in config from where ever they come from
+     * 
      */
     getCertificates()/*: Promise<Certificate[]>*/ {
 

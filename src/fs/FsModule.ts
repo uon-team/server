@@ -1,6 +1,5 @@
 
 import { Module, ModuleWithProviders, APP_INITIALIZER, Provider } from '@uon/core';
-import { LogModule } from '../log/LogModule';
 import { FsConfig, FS_CONFIG } from './FsConfig';
 
 @Module({

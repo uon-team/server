@@ -236,15 +236,6 @@ function ParseUrl(req: IncomingMessage) {
     return uri;
 }
 
-/**
- * @private
- * @param req 
- */
-function GetClientIp(req: IncomingMessage): string {
-
-    let header: string = Array.isArray(req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'][0] : '';
-    return header.split(',')[0] || req.connection.remoteAddress;
-}
 
 
 

@@ -1,7 +1,5 @@
 
 import { Application, Module, ModuleWithProviders, ObjectUtils, APP_INITIALIZER } from '@uon/core';
-import { LogModule } from '../log/LogModule';
-
 import { HttpServer } from './HttpServer';
 import { HttpContext } from './HttpContext';
 import { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './HttpConfig';
@@ -15,7 +13,6 @@ import { HTTP_ROUTER, RouterFromModuleRefs } from './HttpRouter';
 
 @Module({
     imports: [
-        LogModule
     ],
     providers: [
         HttpServer,

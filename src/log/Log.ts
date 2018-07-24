@@ -13,32 +13,43 @@ export interface LogEntry {
 
     date: Date;
     severity: LogSeverity;
-    topic: string;
     message: string;
 }
 
 
+
 export class Log {
 
-    constructor(readonly name: string, private adapter: LogAdapter) {
+    constructor(private adapter: LogAdapter, private argSeparator: string = " | ") {
 
     }
 
+    debug(...args: any[]) {
 
-    debug() {
-
+        this.writeEntry(LogSeverity.Debug, args);
     }
 
-    log() {
-
+    log(...args: any[]) {
+        this.writeEntry(LogSeverity.Normal, args);
     }
 
-    warn() {
-
+    warn(...args: any[]) {
+        this.writeEntry(LogSeverity.Warning, args);
     }
 
-    error() {
+    error(...args: any[]) {
+        this.writeEntry(LogSeverity.Error, args);
+    }
 
+    private writeEntry(sev: LogSeverity, args: any[]) {
+
+        let entry: LogEntry = {
+            date: new Date(),
+            severity: sev,
+            message: args.join(this.argSeparator)
+        };
+
+        this.adapter.write(entry);
     }
 
 }

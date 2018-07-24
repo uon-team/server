@@ -2,7 +2,7 @@
 
 // Http exports
 export { HttpModule } from './src/http/HttpModule';
-export { HttpServer } from './src/http/HttpServer';
+export { HttpServer, HTTP_ACCESS_LOG } from './src/http/HttpServer';
 export { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './src/http/HttpConfig';
 export { HttpContext } from './src/http/HttpContext';
 export { HttpRequest } from './src/http/HttpRequest';
@@ -34,5 +34,7 @@ export { LetsEncryptLocalStorageAdapter } from './src/letsencrypt/adapters/Local
 
 
 // Log exports
-export { LogModule } from './src/log/LogModule';
-export { LogService } from './src/log/LogService';
+export { Log, LogEntry, LogSeverity } from './src/log/Log';
+export { LogAdapter } from './src/log/LogAdapter';
+export { ConsoleLogger } from './src/log/adapters/ConsoleLogger';
+export { FileLogger } from './src/log/adapters/FileLogger';
