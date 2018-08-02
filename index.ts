@@ -13,6 +13,7 @@ export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/HttpCa
 export { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './src/http/HttpEncoding';
 export { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './src/http/HttpRange';
 export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
+export { JsonTransform } from './src/http/JsonTransform';
 
 export { HttpRouter, HttpRoute, HTTP_ROUTER } from './src/http/HttpRouter';
 export { HttpError } from './src/http/HttpError';
@@ -38,3 +39,10 @@ export { Log, LogEntry, LogSeverity } from './src/log/Log';
 export { LogAdapter } from './src/log/LogAdapter';
 export { ConsoleLogger } from './src/log/adapters/ConsoleLogger';
 export { FileLogger } from './src/log/adapters/FileLogger';
+
+
+// Mailer exports
+export { EmailAttachment, EmailMessage } from './src/mailer/EmailMessage';
+export { MailerService } from './src/mailer/MailerService';
+export { MailerModule } from './src/mailer/MailerModule';
+export { MailerConfig, MailerAdpater } from './src/mailer/MailerConfig';

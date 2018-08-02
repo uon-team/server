@@ -4,7 +4,7 @@ import { LogAdapter } from "./LogAdapter";
 
 export enum LogSeverity {
     Debug = 0,
-    Normal,
+    Info,
     Warning,
     Error
 }
@@ -13,7 +13,7 @@ export interface LogEntry {
 
     date: Date;
     severity: LogSeverity;
-    message: string;
+    args: any[];
 }
 
 
@@ -30,7 +30,7 @@ export class Log {
     }
 
     log(...args: any[]) {
-        this.writeEntry(LogSeverity.Normal, args);
+        this.writeEntry(LogSeverity.Info, args);
     }
 
     warn(...args: any[]) {
@@ -46,7 +46,7 @@ export class Log {
         let entry: LogEntry = {
             date: new Date(),
             severity: sev,
-            message: args.join(this.argSeparator)
+            args: args
         };
 
         this.adapter.write(entry);

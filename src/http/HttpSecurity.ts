@@ -15,6 +15,15 @@ export interface ContentSecurityPolicyOptions {
      */
     defaultSrc: string;
 
+    scriptSrc: string;
+
+    imageSrc: string;
+
+    objectSrc: string;
+
+    styleSrc: string;
+
+
 
     /**
      * In case of a CSP violation, the browser (if implemented) will send a report 
@@ -36,6 +45,7 @@ export interface HttpSecurityConfigureOptions {
 
     /**
      * Whether the response should set "x-frame-options: SAMEORIGIN" in headers
+     * Setting this to true will prevent other sites from loading the resource with an iframe
      */
     noIFrames?: boolean;
 
@@ -70,6 +80,18 @@ export class HttpSecurity extends HttpTransform {
     }
 
     transform(response: HttpResponse) {
+
+        if(!this._options) {
+            return;
+        }
+
+        if(this._options.noIFrames) {
+            response.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        }
+
+        if(this._options.xssProtection) {
+            response.setHeader('X-XSS-Protection', '1; mode=block');
+        }
 
     }
 }

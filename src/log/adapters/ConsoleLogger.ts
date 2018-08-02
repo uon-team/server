@@ -8,22 +8,27 @@ export class ConsoleLogger implements LogAdapter {
 
         switch(entry.severity) {
             case LogSeverity.Debug: {
-                console.debug(`${entry.date.toISOString()} - ${entry.message}`);
+                console.debug(`${entry.date.toISOString()} - ${this.format(...entry.args)}`);
                 break;
             }
-            case LogSeverity.Normal: {
-                console.log(`${entry.date.toISOString()} - ${entry.message}`);
+            case LogSeverity.Info: {
+                console.log(`${entry.date.toISOString()} - ${this.format(...entry.args)}`);
                 break;
             }
             case LogSeverity.Warning: {
-                console.warn(`${entry.date.toISOString()} - ${entry.message}`);
+                console.warn(`${entry.date.toISOString()} - ${this.format(...entry.args)}`);
                 break;
             }
             case LogSeverity.Error: {
-                console.error(`${entry.date.toISOString()} - ${entry.message}`);
+                console.error(`${entry.date.toISOString()} - ${this.format(...entry.args)}`);
                 break;
             }
         }
 
+    }
+
+    private format(...args: any[]) {
+
+        return args.join(' | ');
     }
 }

@@ -20,10 +20,14 @@ const NO_BODY_METHODS = ['DELETE', 'OPTIONS', 'GET', 'HEAD', 'COPY', 'PURGE', 'U
  */
 export interface HttpRequestBodyConfig {
 
-    // the maximum acceptable body size, in bytes
+    /**
+     *  the maximum acceptable body size, in bytes
+     */
     maxLength?: number;
 
-    // NOT IMPLEMENTED. which content type (mime) is accepted 
+    /**
+     * NOT YET IMPLEMENTED. which content type (mime) is accepted 
+     */
     accept?: string[];
 }
 

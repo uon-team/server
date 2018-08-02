@@ -144,7 +144,7 @@ export class HttpRange extends HttpTransform {
                     "Accept-Ranges": "bytes"
                 });
 
-                // se input stream with range
+                // set input stream with range
                 response.setInputSteam(src_adapter.createReadStream(src_path, this.range));
     
             });

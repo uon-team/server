@@ -1,6 +1,6 @@
 # UON SERVER
 
-A full-featured web server written in Typescript with Let's Encrypt support. This package is based on the @uon/core application architecture.
+A web server written in Typescript with Let's Encrypt built-in. This package is based on the @uon/core application architecture.
 
 
 ## Usage
@@ -93,7 +93,7 @@ The LetsEncryptModule is responsible for obtaining certificates from the authori
 
 
 ### Usage
-To get Let's Encrypt certificates for your server, you simply need to add the module to your application's main module imports :
+To get Let's Encrypt certificates for your server, you simply need to add the module with a config to your application's main module imports :
 
 ```typescript
 

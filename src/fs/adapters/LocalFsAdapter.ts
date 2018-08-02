@@ -49,8 +49,8 @@ export class LocalFsAdapter implements FsAdapter {
 
         const filepath = _path.join(this.config.basePath, SanitizePath(path));
 
-         // make sure dir exists if config permits it
-         if (this.config.forceDirCreationOnWrite) {
+        // make sure dir exists if config permits it
+        if (this.config.forceDirCreationOnWrite) {
             EnsureDirectoryExistence(filepath);
         }
 
@@ -140,7 +140,7 @@ export class LocalFsAdapter implements FsAdapter {
                 }
 
                 let mime = mime_types.lookup(path);
-                let ext = mime ? mime_types.extension(mime as string) : false;
+                let ext = mime ? mime_types.extension(mime as string) : _path.extname(path).substr(1);
 
                 resolve({
                     modified: stats.mtime,
@@ -149,12 +149,45 @@ export class LocalFsAdapter implements FsAdapter {
                     mimeType: mime ? mime as string : undefined,
                     ext: ext ? ext as string : undefined,
                     url: filepath,
-                    path: path
+                    path: path,
+                    name: _path.basename(path)
                 });
 
             });
 
         });
+    }
+
+    list(path: string): Promise<FileStat[]> {
+
+        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+
+
+        return new Promise((resolve, reject) => {
+
+            fs.readdir(filepath, (err, files) => {
+
+                if (err) {
+                    return reject(err);
+                }
+
+                let promises: Promise<FileStat>[] = [];
+
+
+                for (let i = 0; i < files.length; ++i) {
+
+                    let relpath = _path.join(path, files[i]);
+
+                    promises.push(this.stat(relpath));
+
+                }
+
+                resolve(Promise.all(promises));
+
+            });
+
+        });
+
     }
 
 

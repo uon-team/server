@@ -26,4 +26,6 @@ export abstract class FsAdapter {
 
     abstract stat(path: string): Promise<FileStat>;
 
+    abstract list(dir: string): Promise<FileStat[]>;
+
 }

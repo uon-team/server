@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@uon/core'
-import { MAILER_CONFIG, MailerConfig } from './MailerConfig';
+import { MAILER_CONFIG, MailerConfig, MailerAdpater } from './MailerConfig';
+import { EmailMessage } from './EmailMessage';
 
 
 
@@ -7,8 +8,13 @@ import { MAILER_CONFIG, MailerConfig } from './MailerConfig';
 export class MailerService {
 
 
-
     constructor(@Inject(MAILER_CONFIG) private config: MailerConfig) {
+
+    }
+
+    send(message: EmailMessage, adapter: MailerAdpater) {
+
+        return adapter.sendRaw(message.render());
 
     }
 

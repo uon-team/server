@@ -122,30 +122,37 @@ export class HttpResponse {
         this._inputStream = readable;
     }
 
+    stream(readable: Stream) {
+        this._inputStream = readable;
+    }
 
 
     /**
      * Use a transform in the pipeline
      * @param transform 
      */
-    use(transform: HttpTransform) {
+    use(...transforms: HttpTransform[]) {
 
-        this._transforms.push(transform);
+        transforms.forEach((transform) => {
 
-        let func = () => {
+            this._transforms.push(transform);
 
-            return new Promise((resolve, reject) => {
+            let func = () => {
 
-                if (this.sent) {
-                    return reject('sent');
-                }
+                return new Promise((resolve, reject) => {
 
-                resolve(transform.transform(this));
-            });
+                    if (this.sent) {
+                        return reject('sent');
+                    }
 
-        }
+                    resolve(transform.transform(this));
+                });
 
-        this._stack.push(func);
+            }
+
+            this._stack.push(func);
+
+        });
 
     }
 
@@ -192,7 +199,7 @@ export class HttpResponse {
 
         }).then(() => {
 
-            if(this._inputStream) {
+            if (this._inputStream) {
                 this._inputStream.pipe(this.toWritableStream());
                 return;
             }

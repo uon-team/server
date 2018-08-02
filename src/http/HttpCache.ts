@@ -60,11 +60,11 @@ export class HttpCache extends HttpTransform {
         }
 
         // check for etag header
-        let etag = request.headers["etag"];
+       /* let etag = request.headers["etag"];
         if (etag) {
             this.etag = etag as string;
         }
-
+        */
     }
 
     /**
