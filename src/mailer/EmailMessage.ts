@@ -142,17 +142,6 @@ export class EmailMessage {
 
         if(this._attachments.length) {
 
-            `--a3f166a86b56ff6c37755292d690675717ea3cd9de81228ec2b76ed4a15d6d1a
-            Content-Type: text/plain; name="customers.txt"
-            Content-Description: customers.txt
-            Content-Disposition: attachment;filename="customers.txt";
-                creation-date="Sat, 05 Aug 2017 19:35:36 GMT";
-            Content-Transfer-Encoding: base64
-            
-            SUQsRmlyc3ROYW1lLExhc3ROYW1lLENvdW50cnkKMzQ4LEpvaG4sU3RpbGVzLENhbmFkYQo5MjM4
-            OSxKaWUsTGl1LENoaW5hCjczNCxTaGlybGV5LFJvZHJpZ3VleixVbml0ZWQgU3RhdGVzCjI4OTMs
-            QW5heWEsSXllbmdhcixJbmRpYQ==`
-
             for (let i = 0; i < this._attachments.length; i++) {
                 const element = this._attachments[i];
 
@@ -218,10 +207,6 @@ export class EmailMessage {
 
         // all done with header
         return header_parts;
-    }
-
-    private insertBoundary(parts: string[], prefix: string = '') {
-
     }
 
 

@@ -15,7 +15,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 
 
-
 const ACME_PROD = 'https://acme-v01.api.letsencrypt.org';
 const ACME_STAGING = 'https://acme-staging.api.letsencrypt.org';
 
@@ -24,6 +23,7 @@ export class LetsEncryptService {
 
     private acmeClient: AcmeClient;
     private storageAdapter: LetsEncryptStorageAdapter;
+    private waitingForChallenge: boolean = false;
 
     constructor(@Inject(LE_CONFIG) private config: LetsEncryptConfig) {
 
@@ -32,8 +32,7 @@ export class LetsEncryptService {
 
         // get the storage adapter
         this.storageAdapter = config.storageAdapter;
-
-    
+        
     }
 
     /**
@@ -129,18 +128,19 @@ export class LetsEncryptService {
         let parts = req.url.split('.well-known/acme-challenge/');
         let token = parts[1];
 
-        return this.config.storageAdapter.getChallenge(token).then((c) => {
+        return this.config.storageAdapter.getChallenge(token)
+            .then((c) => {
 
-            if (!c) {
-                res.writeHead(404);
-                res.end("Not Found");
-                return;
-            }
+                if (!c) {
+                    res.writeHead(404);
+                    res.end("Not Found");
+                    return;
+                }
 
-            res.writeHead(200);
-            res.end(c.keyauth);
+                res.writeHead(200);
+                res.end(c.keyauth);
 
-        });
+            });
     }
 
 

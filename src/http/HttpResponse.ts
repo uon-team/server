@@ -1,6 +1,5 @@
 import { OutgoingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
 import { Writable, Stream, Readable } from "stream";
-import { read } from "fs";
 import { HttpTransform } from "./HttpTransform";
 
 
@@ -122,6 +121,11 @@ export class HttpResponse {
         this._inputStream = readable;
     }
 
+
+    /**
+     * Alias for setInputStream
+     * @param readable 
+     */
     stream(readable: Stream) {
         this._inputStream = readable;
     }
@@ -162,9 +166,7 @@ export class HttpResponse {
      */
     finish() {
 
-        let promise_chain = Promise.resolve();
-
-        let consume_chain = (): Promise<any> => {
+        const consume_chain = (): Promise<any> => {
             let func = this._stack.shift();
             if (!func) return Promise.resolve();
 

@@ -2,6 +2,8 @@
 
 A web server written in Typescript with Let's Encrypt built-in. This package is based on the @uon/core application architecture.
 
+Please note that there are many unfinished features, use at your own risk.
+
 
 ## Usage
 

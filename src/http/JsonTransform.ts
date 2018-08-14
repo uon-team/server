@@ -19,8 +19,12 @@ export interface JsonTransformConfig {
      * Whether to print json with tab spaces
      */
     pretty?: boolean;
+    
 }
 
+/**
+ * Configures a response to send a JSON object as a stream
+ */
 export class JsonTransform extends HttpTransform {
 
     constructor(private payload: any, private config: JsonTransformConfig = {}) {
@@ -35,12 +39,12 @@ export class JsonTransform extends HttpTransform {
         }
         else {
 
+            let payload = this.payload;
             if(this.config.keep) {
-                
-
+                payload = FilterKeys(this.payload, this.config.keep);
             }
 
-            result = JSON.stringify(this.payload, null, this.config.pretty ? '\t' : null);
+            result = JSON.stringify(payload, null, this.config.pretty ? '\t' : null);
         }
         
         // set content type to json
@@ -59,4 +63,18 @@ export class JsonTransform extends HttpTransform {
         response.stream(readable);
 
     }
+}
+
+
+function FilterKeys(obj: any, keys: string[]) {
+
+    // filter unwanted keys
+    let result: any = {};
+
+    for (let i = 0; i < keys.length; ++i) {
+        result[keys[i]] = obj[keys[i]];
+    }
+
+    return result;
+
 }

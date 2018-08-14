@@ -64,10 +64,16 @@ export class HttpServer extends EventSource {
         return this._started;
     }
 
+    /**
+     * Access to the plain http server 
+     */
     get http() {
         return this._http;
     }
 
+    /**
+     * Access to the secure http server, if available
+     */
     get https() {
         return this._https;
     }
@@ -166,7 +172,7 @@ export class HttpServer extends EventSource {
         const config = this.config;
 
         // fetch the root http router
-        let router: Router<HttpRouter> = this.injector.get(HTTP_ROUTER);
+        const router: Router<HttpRouter> = this.injector.get(HTTP_ROUTER);
 
         // create a new context
         const http_context = new HttpContext({
@@ -189,48 +195,50 @@ export class HttpServer extends EventSource {
         }
 
         // emit the request event first
-        return this.emit('request', http_context).then(() => {
+        return this.emit('request', http_context)
+            .then(() => {
 
-            // let the context process the request
-            return http_context.process();
+                // let the context process the request
+                return http_context.process();
 
-        }).catch((ex: HttpError) => {
+            })
+            .catch((ex: HttpError) => {
 
-            // emit error event
-            return this.emit('error', http_context, ex).then(() => {
+                // emit error event
+                return this.emit('error', http_context, ex).then(() => {
 
-                // final chance was given, respond with whatever error we got
-                // this is to avoid having a dangling connection that will eventually timeout
-                if (!http_context.response.sent) {
-                    //console.error(ex)
-                    http_context.response.statusCode = ex.code || 500;
-                    return http_context.response.send(ex.body || ex.message);
+                    // final chance was given, respond with whatever error we got
+                    // this is to avoid having a dangling connection that will eventually timeout
+                    if (!http_context.response.sent) {
+                        //console.error(ex)
+                        http_context.response.statusCode = ex.code || 500;
+                        return http_context.response.send(ex.body || ex.message);
+
+                    }
+
+                });
+
+
+            }).then(() => {
+
+                // all done
+                if (this.accessLog) {
+
+                    const res = http_context.response;
+                    const req = http_context.request;
+
+                    const time_ms = `${Date.now() - current_time}ms`;
+
+                    this.accessLog.log(
+                        res.statusCode,
+                        req.method,
+                        req.uri.path,
+                        req.clientIp,
+                        time_ms);
 
                 }
 
             });
-
-
-        }).then(() => {
-
-            // all done
-            if(this.accessLog) {
-
-                const res = http_context.response;
-                const req = http_context.request;
-
-                const time_ms = `${Date.now() - current_time}ms`;
-                
-                this.accessLog.log(
-                    res.statusCode, 
-                    req.method,
-                    req.uri.path, 
-                    req.clientIp, 
-                    time_ms);
-                
-            }
-
-        });
 
     }
 
