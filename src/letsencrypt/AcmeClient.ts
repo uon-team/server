@@ -71,7 +71,7 @@ export class AcmeClient {
         console.log('updateAccount: %s %s', url, this.account.email);
 
         // https://github.com/ietf-wg-acme/acme/issues/30
-        var payload = {
+        const payload = {
             resource: 'reg',
             contact: ['mailto:' + this.account.email],
             agreement: this.agreementUrl
@@ -135,7 +135,7 @@ export class AcmeClient {
         console.log('registerDomain: %s', domain);
 
         // build a payload
-        let payload = {
+        const payload = {
             resource: 'new-authz',
             identifier: {
                 type: 'dns',
@@ -227,7 +227,9 @@ export class AcmeClient {
     waitForChallenge(challengeUri: string) {
 
         let try_count = 0;
+        const wait_for = 1500;
         const max_count = 5;
+
 
         const retry_func = (count: number): Promise<boolean> => {
 
@@ -237,31 +239,35 @@ export class AcmeClient {
             }
 
             // make the request
-            return this.makeRequest('GET', challengeUri)
-                .then((result) => {
+            return GetTimeoutPromise(wait_for)
+                .then(() => {
 
-                    // check for a valid status code
-                    if (result.statusCode !== 202) {
-                        console.log('waitForChallenge: invalid response code getting uri %s', result.statusCode);
-                        throw new Error('Bad response code:' + result.statusCode);
-                    }
+                    return this.makeRequest('GET', challengeUri)
+                        .then((result) => {
 
-                    // parse the response body
-                    let body = JSON.parse(result.body.toString('utf8'));
+                            // check for a valid status code
+                            if (result.statusCode !== 202) {
+                                console.log('waitForChallenge: invalid response code getting uri %s', result.statusCode);
+                                throw new Error('Bad response code:' + result.statusCode);
+                            }
 
-                    // Challenge is still pending, retry
-                    if (body.status === 'pending') {
-                        return retry_func(try_count++);
-                    }
-                    // challenge has passed, we can continue
-                    else if (body.status === 'valid') {
-                        return true;
-                    }
-                    // challenge is invalid, we cannot continue
-                    else if (body.status === 'invalid') {
-                        return false;
-                    }
+                            // parse the response body
+                            let body = JSON.parse(result.body.toString('utf8'));
 
+                            // Challenge is still pending, retry
+                            if (body.status === 'pending') {
+                                return retry_func(try_count++);
+                            }
+                            // challenge has passed, we can continue
+                            else if (body.status === 'valid') {
+                                return true;
+                            }
+                            // challenge is invalid, we cannot continue
+                            else if (body.status === 'invalid') {
+                                return false;
+                            }
+
+                        });
                 });
 
 
@@ -517,3 +523,10 @@ export class AcmeClient {
 
 
 
+function GetTimeoutPromise(ms: number) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve();
+        }, ms)
+    })
+}

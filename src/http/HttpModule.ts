@@ -11,8 +11,12 @@ import { HttpRequestBody } from './HttpRequestBody';
 
 import { HTTP_ROUTER, RouterFromModuleRefs } from './HttpRouter';
 
+import { ClusterModule } from '../cluster/ClusterModule';
+import { CLUSTER_WORKER_TASK } from '../cluster/ClusterLifecycle';
+
 @Module({
     imports: [
+        ClusterModule
     ],
     providers: [
         HttpServer,
@@ -29,7 +33,7 @@ import { HTTP_ROUTER, RouterFromModuleRefs } from './HttpRouter';
 
         },
         {
-            token: APP_INITIALIZER,
+            token: CLUSTER_WORKER_TASK,
             factory: (server: HttpServer) => {
                 return server.start();
             },

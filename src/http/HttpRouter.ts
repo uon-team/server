@@ -2,8 +2,6 @@
 import {
     Type,
     ModuleRef,
-    CreateMetadataCtor,
-    GetOrDefineMetadata,
     GetMetadata,
     FindMetadataOfType,
     Router,
@@ -14,12 +12,48 @@ import {
     PathUtils,
     META_ANNOTATIONS,
     META_PROPERTIES,
-    TypeDecorator
+    TypeDecorator,
+    PropDecorator,
+    MakeTypeDecorator,
+    MakePropertyDecorator
 } from '@uon/core';
 
 
 export const HTTP_ROUTER = new InjectionToken<Router<HttpRouter>>("Default Http router")
 
+
+export interface HttpRouterDecorator {
+
+    (meta: HttpRouter): TypeDecorator;
+    new(meta: HttpRouter): HttpRouter;
+
+}
+
+export const HttpRouter: HttpRouterDecorator = MakeTypeDecorator(
+    "HttpRouter",
+    (meta: HttpRouter) => meta,
+    null,
+    (cls: any, meta: HttpRouter) => {
+
+        // ensure parent is HttpRouter decorated
+        if (meta.parent) {
+
+            let parent_ctrl = FindMetadataOfType(META_ANNOTATIONS, meta.parent, HttpRouter as any);
+
+            if (!parent_ctrl) {
+                throw new Error(`HttpRouter: parent was defined 
+                with ${meta.parent.name} but doesn't have 
+                HttpRouter decorator`);
+            }
+
+        }
+
+        // set default priority
+        if (meta.priority === undefined) {
+            meta.priority = 1000;
+        }
+    }
+);
 
 export interface HttpRouter {
 
@@ -43,62 +77,31 @@ export interface HttpRouter {
      * lower numbers have priority, defaults to 1000
      */
     priority?: number;
+}
 
-    //(options: HttpRouter): TypeDecorator;
-    //new (options: HttpRouter): HttpRouter
-    // (options: HttpRouter): any;
+
+
+
+export interface HttpRouteDecorator {
+
+    (meta: HttpRoute): PropDecorator;
+    new(meta: HttpRoute): HttpRoute;
 
 }
 
 /**
- * Defines an HttpRouter
- * @param options 
+ * HttpRoute decorator for router endpoints 
+ * @param meta 
  */
-export function HttpRouter(options: HttpRouter) {
-
-    let meta_ctor = CreateMetadataCtor((ctrl: HttpRouter) => ctrl);
-    if (this instanceof HttpRouter) {
-        meta_ctor.apply(this, arguments);
-        return this;
+export const HttpRoute: HttpRouteDecorator = MakePropertyDecorator(
+    "HttpRoute",
+    (meta: HttpRoute) => meta,
+    null,
+    (cls: any, meta: HttpRoute, key: any) => {
+        // set the method key
+        meta.key = key;
     }
-
-    return function HttpControllerDecorator(target: Type<any>) {
-
-        if (options.parent) {
-
-            let parent_ctrl = FindMetadataOfType(META_ANNOTATIONS, options.parent, HttpRouter as any);
-
-            if (!parent_ctrl) {
-                throw new Error(`HttpRouter: parent was defined 
-                with ${options.parent.name} but doesn't have 
-                HttpRouter decorator`);
-            }
-
-        }
-
-        // get annotations array for this type
-        let annotations = GetOrDefineMetadata(META_ANNOTATIONS, target, []);
-
-        // set default priority
-        if (options.priority === undefined) {
-            options.priority = 1000;
-        }
-
-        // create the metadata with either a privided token or the class type
-        let meta_instance = new (<any>HttpRouter)(options);
-
-
-        // push the metadata
-        annotations.push(meta_instance);
-
-
-
-
-        return target;
-    }
-}
-
-
+)
 
 export interface HttpRoute {
 
@@ -119,40 +122,6 @@ export interface HttpRoute {
 
 
 }
-
-/**
- * HttpRoute decorator for router endpoints 
- * @param meta 
- */
-export function HttpRoute(meta: HttpRoute) {
-
-
-    let meta_ctor = CreateMetadataCtor((meta: HttpRoute) => meta);
-    if (this instanceof HttpRoute) {
-        meta_ctor.apply(this, arguments);
-        return this;
-    }
-
-    return function HttpRouteDecorator(target: Type<any>, key: string) {
-
-        let annotations = GetOrDefineMetadata(META_PROPERTIES, target, {});
-
-        // set the method key
-        meta.key = key;
-
-        // create the metadata with either a privided token or the class type
-        let meta_instance = new (<any>HttpRoute)(meta);
-
-        // push the metadata
-        annotations[key] = annotations[key] || [];
-        annotations[key].push(meta_instance);
-
-        return target;
-    }
-
-}
-
-
 
 
 /**

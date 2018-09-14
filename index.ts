@@ -1,4 +1,10 @@
 
+// Cluster exports
+export { ClusterModule } from './src/cluster/ClusterModule';
+export { ClusterService } from './src/cluster/ClusterService';
+export { CLUSTER_CONFIG, ClusterConfig } from './src/cluster/ClusterConfig';
+export { CLUSTER_MASTER_TASK, CLUSTER_WORKER_TASK } from './src/cluster/ClusterLifecycle';
+
 
 // Http exports
 export { HttpModule } from './src/http/HttpModule';
@@ -22,6 +28,7 @@ export { HttpError } from './src/http/HttpError';
 export { FsModule } from './src/fs/FsModule';
 export { FsAdapter, FileStat } from './src/fs/FsAdapter';
 export { FsConfig, FsAdapterConfig, FS_CONFIG } from './src/fs/FsConfig';
+export { FsUtils } from './src/fs/FsUtils';
 export { LocalFsAdapter } from './src/fs/adapters/LocalFsAdapter';
 
 

@@ -14,10 +14,19 @@ import { Log } from '../log/Log';
 
 
 /**
- * 
+ * Access log provider token
  */
 export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requests");
 
+/**
+ * SSL Certificate provider token
+ */
+export const HTTP_SSL_PROVIDER = new InjectionToken<HttpSSLProvider>("Provider for SSL certificates");
+
+
+export interface HttpSSLProvider {
+
+}
 
 /**
  * 
@@ -38,22 +47,6 @@ export class HttpServer extends EventSource {
         private injector: Injector) {
 
         super();
-
-        // create a plain http server
-        this._http = new Server(letsencrypt ?
-            this.handleHttpsRedirect.bind(this) :
-            this.handleRequest.bind(this));
-
-        // start listening right away
-        this._http.listen(config.plainPort, config.host, (err: Error) => {
-
-            if (err) {
-                throw err;
-            }
-
-            console.log(`HTTP server listening on ${config.host}:${config.plainPort}`);
-        });
-
 
     }
 
@@ -90,6 +83,21 @@ export class HttpServer extends EventSource {
 
         // set the started flag to true right away
         this._started = true;
+
+
+        // create a plain http server
+        this._http = new Server(this.letsencrypt ?
+            this.handleHttpsRedirect.bind(this) :
+            this.handleRequest.bind(this));
+
+        // start listening right away
+        this._http.listen(this.config.plainPort, this.config.host, (err: Error) => {
+            if (err) {
+                throw err;
+            }
+            console.log(`HTTP server listening on ${this.config.host}:${this.config.plainPort}`);
+        });
+
 
         // if let's encrypt is defined, create an https server
         if (this.letsencrypt) {
@@ -234,7 +242,8 @@ export class HttpServer extends EventSource {
                         req.method,
                         req.uri.path,
                         req.clientIp,
-                        time_ms);
+                        time_ms,
+                        process.pid);
 
                 }
 
@@ -248,9 +257,9 @@ export class HttpServer extends EventSource {
     private handleHttpsRedirect(req: IncomingMessage, res: ServerResponse) {
 
         // if let's encrypt service is defined, listen in on the challenge
-        if (this.letsencrypt && req.url.indexOf('.well-known/acme-challenge') !== -1) {
+        /*if (this.letsencrypt && req.url.indexOf('.well-known/acme-challenge') !== -1) {
             return this.letsencrypt.handleChallengeRequest(req, res);
-        }
+        }*/
 
         var new_url = 'https://' + req.headers.host + req.url;
         res.writeHead(301, { Location: new_url });

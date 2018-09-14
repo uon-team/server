@@ -3,7 +3,7 @@ import { Injectable, Inject, Optional } from '@uon/core';
 
 import { LetsEncryptConfig, LE_CONFIG } from './LetsEncryptConfig';
 import { Certificate, Account } from './Models';
-import { IncomingMessage, ServerResponse } from 'http';
+import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
 import { AcmeClient } from './AcmeClient';
 import { LetsEncryptStorageAdapter } from './StorageAdapter';
 import { GenerateRSA, GenerateCSR, Base64Encode } from './Utils';
@@ -13,7 +13,7 @@ import { isMaster } from 'cluster';
 import * as _path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-
+import { HTTP_CONFIG, HttpConfig } from '../http/HttpConfig';
 
 const ACME_PROD = 'https://acme-v01.api.letsencrypt.org';
 const ACME_STAGING = 'https://acme-staging.api.letsencrypt.org';
@@ -25,14 +25,15 @@ export class LetsEncryptService {
     private storageAdapter: LetsEncryptStorageAdapter;
     private waitingForChallenge: boolean = false;
 
-    constructor(@Inject(LE_CONFIG) private config: LetsEncryptConfig) {
+    constructor(@Inject(LE_CONFIG) private config: LetsEncryptConfig,
+        @Inject(HTTP_CONFIG) private httpConfig: HttpConfig) {
 
         // default for tempDir
         config.tempDir = config.tempDir || os.tmpdir();
 
         // get the storage adapter
         this.storageAdapter = config.storageAdapter;
-        
+
     }
 
     /**
@@ -125,9 +126,19 @@ export class LetsEncryptService {
      */
     handleChallengeRequest(req: IncomingMessage, res: ServerResponse) {
 
+        if(req.url.indexOf('.well-known/acme-challenge/') == -1) {
+            res.writeHead(404);
+            res.end("Not Found");
+            return;
+        }
+
         let parts = req.url.split('.well-known/acme-challenge/');
         let token = parts[1];
 
+
+        console.log('LE asked challenge ' + token);
+
+        
         return this.config.storageAdapter.getChallenge(token)
             .then((c) => {
 
@@ -149,70 +160,113 @@ export class LetsEncryptService {
         const client = this.acmeClient;
 
         // register the account, it might be already registred but we need to make sure
-        return client.registerAccount().then(() => {
+        return client.registerAccount()
+            .then(() => {
 
-            // register the domain an get a challenge from LE
-            return client.registerDomain(domain).then((result) => {
+                // register the domain an get a challenge from LE
+                return client.registerDomain(domain)
+                    .then((result) => {
 
-                let http_challenges = result.challenges.filter((x: any) => { return x.type === 'http-01'; });
-                if (http_challenges.length === 0) {
-                    throw new Error('no http challenges');
-                }
+                        let http_challenges = result.challenges.filter((x: any) => { return x.type === 'http-01'; });
+                        if (http_challenges.length === 0) {
+                            throw new Error('no http challenges');
+                        }
 
-                return http_challenges[0];
+                        return http_challenges[0];
+                    });
+
+            })
+            .then((httpChallenge) => {
+
+                // generate a challenge
+                let challenge = client.prepareHttpChallenge(domain, httpChallenge);
+                let challenge_uri = httpChallenge.uri;
+                let challenge_token = httpChallenge.token;
+                let server: Server = null;
+
+                // save the generated challenge
+                return this.storageAdapter.saveChallenge(challenge)
+                    .then(() => {
+
+                        // start a temporary http server so we can receive the challenge respons
+                        return this.startChallengeServer().then((s) => {
+                            console.log('LE started temp server')
+                            server = s;
+                        });
+
+                    })
+                    .then(() => {
+
+                        // notify LE that we have generated a challenge
+                        return client.notifyChallengeReady(challenge_uri, challenge);
+
+                    })
+                    .then(() => {
+
+                        // wait until LE has figured out the puzzle
+                        return client.waitForChallenge(challenge_uri);
+
+                    }).then(() => {
+
+                        // shutdown temp server
+                        return new Promise((resolve, reject) => {
+                            server.close(() => {
+                                console.log('LE closed temp server')
+                                resolve();
+                                server = null;
+                            });
+                        });
+                    });
+
+
+            })
+            .then(() => {
+
+                // generate a new certificate
+                return this.generateCertificate(domain);
+
+            })
+            .then((cert) => {
+
+                // let LE sign the certificate
+                return client.signCertificate(cert)
+                    .then((url) => {
+
+                        // download the certificate at the url provided
+                        return client.downloadCertificate(url);
+
+                    })
+                    .then((buffer) => {
+
+                        // assign the signed certificate
+                        cert.cert = buffer.toString('utf8');
+
+                        // and a renew by date
+                        cert.renewBy = new Date(Date.now() + DaysToMs(61));
+
+                        // save the certificate
+                        return this.storageAdapter.saveCertificate(cert)
+                    });
+
+
+
             });
 
-        }).then((httpChallenge) => {
 
-            // generate a challenge
-            let challenge = client.prepareHttpChallenge(domain, httpChallenge);
-            let challenge_uri = httpChallenge.uri;
-            let challenge_token = httpChallenge.token;
+    }
 
-            // save the generated challenge
-            return this.storageAdapter.saveChallenge(challenge).then(() => {
+    private startChallengeServer(): Promise<Server> {
 
-                // notify LE that we have generated a challenge
-                return client.notifyChallengeReady(challenge_uri, challenge);
+        return new Promise((resolve, reject) => {
 
-            }).then(() => {
-
-                // wait until LE has figured out the puzzle
-                return client.waitForChallenge(challenge_uri);
-
+            let server = createServer((req, res) => {
+                this.handleChallengeRequest(req, res);
             });
 
-
-        }).then(() => {
-
-            // generate a new certificate
-            return this.generateCertificate(domain);
-
-        }).then((cert) => {
-
-            // let LE sign the certificate
-            return client.signCertificate(cert).then((url) => {
-
-                // download the certificate at the url provided
-                return client.downloadCertificate(url);
-
-            }).then((buffer) => {
-
-                // assign the signed certificate
-                cert.cert = buffer.toString('utf8');
-
-                // and a renew by date
-                cert.renewBy = new Date(Date.now() + DaysToMs(61));
-
-                // save the certificate
-                return this.storageAdapter.saveCertificate(cert)
+            server.listen(this.httpConfig.plainPort, (err: any) => {
+                resolve(server);
             });
-
-
-
         });
-
-
     }
 
     private generateCertificate(domain: string): Certificate {

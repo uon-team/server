@@ -45,7 +45,7 @@ export interface HttpRangeConfigureOptions {
 
 
 /**
- * Parses Range headers and let's you set the Accept-Range header
+ * Parses Range request headers and let's you set the Accept-Range header
  */
 @Injectable()
 export class HttpRange extends HttpTransform {
@@ -110,7 +110,13 @@ export class HttpRange extends HttpTransform {
 
     transform(response: HttpResponse) {
 
-        // must be configured
+        // if user set accept to true, set header
+        if(this._acceptRangeRequest) {
+            response.headers["Accept-Ranges"] = "bytes";
+        }
+
+
+        // must be configured to continue
         if(!this._options) {
             return;
         }
