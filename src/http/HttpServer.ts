@@ -6,10 +6,9 @@ import * as https from 'https';
 import * as tls from 'tls';
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
-import { LetsEncryptService } from '../letsencrypt/LetsEncryptService';
 import { HttpContext } from './HttpContext';
 import { HttpError } from './HttpError';
-import { HTTP_ROUTER, HttpRouter } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter, HttpRouterImpl } from './HttpRouter';
 import { Log } from '../log/Log';
 
 
@@ -24,7 +23,21 @@ export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requ
 export const HTTP_SSL_PROVIDER = new InjectionToken<HttpSSLProvider>("Provider for SSL certificates");
 
 
+/**
+ * Interface to implement for for providing ssl certificates
+ */
 export interface HttpSSLProvider {
+
+    /**
+     * Get the tls secure context for a given domain, used for SNICallback
+     * @param domain 
+     */
+    getSecureContext(domain: string): Promise<tls.SecureContext>;
+
+    /**
+     * Fetch the default cert and key
+     */
+    getDefault(): Promise<{ key: any, cert: any }>;
 
 }
 
@@ -40,9 +53,11 @@ export class HttpServer extends EventSource {
     private _http: Server;
     private _https: https.Server;
 
+    private _redirectRouter: Router<HttpRouter>;
+
 
     constructor(@Inject(HTTP_CONFIG) private config: HttpConfig,
-        @Optional() private letsencrypt: LetsEncryptService,
+        @Optional() @Inject(HTTP_SSL_PROVIDER) private sslProvider: HttpSSLProvider,
         @Optional() @Inject(HTTP_ACCESS_LOG) private accessLog: Log,
         private injector: Injector) {
 
@@ -86,7 +101,7 @@ export class HttpServer extends EventSource {
 
 
         // create a plain http server
-        this._http = new Server(this.letsencrypt ?
+        this._http = new Server(this.sslProvider ?
             this.handleHttpsRedirect.bind(this) :
             this.handleRequest.bind(this));
 
@@ -99,45 +114,12 @@ export class HttpServer extends EventSource {
         });
 
 
-        // if let's encrypt is defined, create an https server
-        if (this.letsencrypt) {
+        // if an SSL provider is defined, create an https server
+        if (this.sslProvider) {
 
-            // get certificates from the service
-            return this.letsencrypt.getCertificates()
-                .then((certs) => {
-
-                    // build the secure context map by domain
-                    const secure_contexts: any = {};
-                    certs.forEach((c) => {
-                        secure_contexts[c.domain] = tls.createSecureContext({
-                            key: c.key,
-                            cert: c.cert
-                        });
-                    });
-
-                    // define the ssl options
-                    const ssl_options: https.ServerOptions = {
-                        SNICallback: (domain, cb) => {
-                            cb(!secure_contexts[domain] ? new Error(`No certificate for ${domain}`) : null, secure_contexts[domain]);
-                        },
-                        key: certs[0].key,
-                        cert: certs[0].cert
-                    };
-
-                    // create the https service
-                    this._https = https.createServer(ssl_options, this.handleRequest.bind(this));
-
-                    // listen to incoming connections
-                    this._https.listen(this.config.port, this.config.host, (err: Error) => {
-                        if (err) {
-                            throw err;
-                        }
-
-                        console.log(`HTTPS server listening on ${this.config.host}:${this.config.port}`);
-                    });
-
+            return this.spawnHttpsServer()
+                .then(() => {
                     return this;
-
                 });
 
         }
@@ -168,6 +150,69 @@ export class HttpServer extends EventSource {
 
 
     /**
+     * (Re)spawns an https server
+     */
+    private spawnHttpsServer() {
+
+        let chain = Promise.resolve();
+
+        // shutdown the current server if it exists
+        if (this._https) {
+            chain = chain.then(() => {
+                return new Promise<void>((resolve) => {
+                    this._https.close(() => {
+                        this._https = null;
+                        resolve();
+                    });
+                })
+            });
+        }
+
+        // proceed to create a new one
+        chain = chain.then(() => {
+
+            // get the default cert and key
+            return this.sslProvider.getDefault()
+                .then((d) => {
+
+                    // create ssl options for the servers
+                    const ssl_options: https.ServerOptions = {
+                        SNICallback: (domain, cb) => {
+                            this.sslProvider.getSecureContext(domain)
+                                .then((context) => {
+                                    cb(!context ? new Error(`No certificate for ${domain}`) : null, context);
+                                });
+
+                        },
+                        key: d.key,
+                        cert: d.cert
+                    };
+
+                    // create the https server
+                    this._https = https.createServer(ssl_options, this.handleRequest.bind(this));
+
+                    return new Promise<void>((resolve, reject) => {
+
+                        // listen to incoming connections
+                        this._https.listen(this.config.port, this.config.host, (err: Error) => {
+                            if (err) {
+                                return reject(err);
+                            }
+
+                            resolve();
+                            console.log(`HTTPS server listening on ${this.config.host}:${this.config.port}`);
+                        });
+
+                    });
+
+
+                });
+        });
+
+        return chain;
+    }
+
+    /**
      * Handle a request
      * @param req 
      * @param res 
@@ -180,7 +225,7 @@ export class HttpServer extends EventSource {
         const config = this.config;
 
         // fetch the root http router
-        const router: Router<HttpRouter> = this.injector.get(HTTP_ROUTER);
+        const router: HttpRouterImpl = this.injector.get(HTTP_ROUTER);
 
         // create a new context
         const http_context = new HttpContext({
@@ -213,18 +258,19 @@ export class HttpServer extends EventSource {
             .catch((ex: HttpError) => {
 
                 // emit error event
-                return this.emit('error', http_context, ex).then(() => {
+                return this.emit('error', http_context, ex)
+                    .then(() => {
 
-                    // final chance was given, respond with whatever error we got
-                    // this is to avoid having a dangling connection that will eventually timeout
-                    if (!http_context.response.sent) {
-                        //console.error(ex)
-                        http_context.response.statusCode = ex.code || 500;
-                        return http_context.response.send(ex.body || ex.message);
+                        // final chance was given, respond with whatever error we got
+                        // this is to avoid having a dangling connection that will eventually timeout
+                        if (!http_context.response.sent) {
+                            //console.error(ex)
+                            http_context.response.statusCode = ex.code || 500;
+                            return http_context.response.send(ex.body || ex.message);
 
-                    }
+                        }
 
-                });
+                    });
 
 
             }).then(() => {
@@ -261,9 +307,29 @@ export class HttpServer extends EventSource {
             return this.letsencrypt.handleChallengeRequest(req, res);
         }*/
 
-        var new_url = 'https://' + req.headers.host + req.url;
-        res.writeHead(301, { Location: new_url });
-        res.end();
+        // fetch the root http router
+        const router: HttpRouterImpl = this.injector.get(HTTP_REDIRECT_ROUTER);
+
+        // create a new context
+        const http_context = new HttpContext({
+            injector: this.injector,
+            providers: this.config.providers,
+            router: router,
+            req: req,
+            res: res
+        });
+
+        http_context.process()
+            .catch((ex: HttpError) => {
+
+                // always redirect
+                const new_url = 'https://' + req.headers.host + req.url;
+                res.writeHead(301, { Location: new_url });
+                res.end();
+
+            });
+
+        
 
     }
 

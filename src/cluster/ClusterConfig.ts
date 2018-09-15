@@ -1,5 +1,9 @@
 import { InjectionToken } from "@uon/core";
 
+import { LockAdapter } from './LockAdapter';
+import { FileLockAdapter } from "./adapters/FileLockAdapter";
+
+
 
 // the unique http config token
 export const CLUSTER_CONFIG = new InjectionToken<ClusterConfig>('Cluster Configuration');
@@ -18,4 +22,16 @@ export interface ClusterConfig {
      */
     concurrency?: number;
 
+
+    /**
+     * The adapter for storing locks
+     */
+    lockAdapter: LockAdapter;
+
+}
+
+export const CLUSTER_DEFAULT_CONFIG: ClusterConfig = {
+    enabled: false,
+    concurrency: 0,
+    lockAdapter: new FileLockAdapter()
 }

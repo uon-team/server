@@ -9,10 +9,10 @@ import { HttpEncoding } from './HttpEncoding';
 import { HttpRange } from './HttpRange';
 import { HttpRequestBody } from './HttpRequestBody';
 
-import { HTTP_ROUTER, RouterFromModuleRefs } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouterImpl } from './HttpRouter';
 
 import { ClusterModule } from '../cluster/ClusterModule';
-import { CLUSTER_WORKER_TASK } from '../cluster/ClusterLifecycle';
+import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
 
 @Module({
     imports: [
@@ -27,13 +27,17 @@ import { CLUSTER_WORKER_TASK } from '../cluster/ClusterLifecycle';
         {
             token: HTTP_ROUTER,
             factory: (app: Application) => {
-                return RouterFromModuleRefs(app.modules);
+                return HttpRouterImpl.FromModuleRefs(app.modules);
             },
             deps: [Application]
 
         },
         {
-            token: CLUSTER_WORKER_TASK,
+            token: HTTP_REDIRECT_ROUTER,
+            value: new HttpRouterImpl()
+        },
+        {
+            token: CLUSTER_WORKER_INIT,
             factory: (server: HttpServer) => {
                 return server.start();
             },

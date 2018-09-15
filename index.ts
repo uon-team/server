@@ -3,8 +3,9 @@
 export { ClusterModule } from './src/cluster/ClusterModule';
 export { ClusterService } from './src/cluster/ClusterService';
 export { CLUSTER_CONFIG, ClusterConfig } from './src/cluster/ClusterConfig';
-export { CLUSTER_MASTER_TASK, CLUSTER_WORKER_TASK } from './src/cluster/ClusterLifecycle';
-
+export { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from './src/cluster/ClusterLifecycle';
+export { LockAdapter } from './src/cluster/LockAdapter';
+export { FileLockAdapter } from './src/cluster/adapters/FileLockAdapter';
 
 // Http exports
 export { HttpModule } from './src/http/HttpModule';
@@ -19,9 +20,10 @@ export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/HttpCa
 export { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './src/http/HttpEncoding';
 export { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './src/http/HttpRange';
 export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
+export { HttpSecurity } from './src/http/HttpSecurity';
 export { JsonTransform } from './src/http/JsonTransform';
 
-export { HttpRouter, HttpRoute, HTTP_ROUTER } from './src/http/HttpRouter';
+export * from './src/http/HttpRouter';
 export { HttpError } from './src/http/HttpError';
 
 // fs exports
@@ -39,6 +41,7 @@ export { LetsEncryptService } from './src/letsencrypt/LetsEncryptService';
 export { Account as LetsEncryptAccount, Certificate as LetsEncryptCertificate, Challenge as LetsEncryptChallenge } from './src/letsencrypt/Models';
 export { LetsEncryptStorageAdapter } from './src/letsencrypt/StorageAdapter';
 export { LetsEncryptLocalStorageAdapter } from './src/letsencrypt/adapters/LocalStorageAdapter';
+export { LetsEncryptController } from './src/letsencrypt/LetsEncryptController';
 
 
 // Log exports

@@ -1,10 +1,10 @@
 import { Injectable, Inject, Injector } from "@uon/core";
 import { ClusterConfig, CLUSTER_CONFIG } from "./ClusterConfig";
+import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT, CLUSTER_WORKER_EXIT, CLUSTER_MASTER_EXIT } from "./ClusterLifecycle";
 
 
 import * as cluster from 'cluster';
 import * as os from 'os';
-import { CLUSTER_MASTER_TASK, CLUSTER_WORKER_TASK } from "./ClusterLifecycle";
 
 
 /**
@@ -12,6 +12,9 @@ import { CLUSTER_MASTER_TASK, CLUSTER_WORKER_TASK } from "./ClusterLifecycle";
  */
 @Injectable()
 export class ClusterService {
+
+
+    private _workers: cluster.Worker[];
 
 
     constructor(@Inject(CLUSTER_CONFIG) private config: ClusterConfig,
@@ -30,15 +33,20 @@ export class ClusterService {
                 // get master prefork work
                 if (cluster.isMaster) {
 
-                    return this.sequence(this.injector.get(CLUSTER_MASTER_TASK, []))
+                    this._workers = [];
+                    return this.sequence(this.injector.get(CLUSTER_MASTER_INIT, []))
                         .then(() => {
 
                             if (this.config.enabled) {
 
+                                let count = this.config.concurrency || os.cpus().length;
+
                                 // fork as many times as the user requested
-                                for (let i = 0; i < this.config.concurrency; ++i) {
-                                    cluster.fork();
+                                for (let i = 0; i < count; ++i) {
+                                    let worker = cluster.fork();
+                                    this._workers.push(worker);
                                 }
+
                             }
 
                         });
@@ -50,18 +58,51 @@ export class ClusterService {
                 // workers needs initialization too you know
                 if (cluster.isWorker || !this.config.enabled) {
 
-                    return this.sequence(this.injector.get(CLUSTER_WORKER_TASK, []))
+                    return this.sequence(this.injector.get(CLUSTER_WORKER_INIT, []))
                         .then(() => {
-
-                            console.log(`Finished initialization on worker ${cluster.worker.id}`)
 
                         });
 
                 }
 
+            })
+            .then(() => {
+
+                let exit = this.stop.bind(this);
+
+                process.on('SIGINT', exit);
+                process.on('SIGTERM', exit);
+
             });
 
     }
+
+    stop() {
+
+        return this.config.lockAdapter.clear()
+            .then(() => {
+
+                let token = cluster.isMaster ? CLUSTER_MASTER_EXIT : CLUSTER_WORKER_EXIT;
+
+                return this.sequence(this.injector.get(token, []))
+                    .then(() => {
+
+                        console.log('Graceful exit @', process.pid);
+                        process.exit(0);
+
+                    });
+
+            })
+    }
+
+    lock(token: string, unique: boolean = false): Promise<boolean> {
+        return this.config.lockAdapter.lock(token, unique);
+    }
+
+    unlock(token: string) {
+        return this.config.lockAdapter.unlock(token);
+    }
+
 
 
     private sequence(tasks: any[]) {

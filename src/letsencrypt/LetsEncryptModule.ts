@@ -3,8 +3,11 @@ import { Module, ModuleWithProviders } from '@uon/core';
 import { LetsEncryptConfig, LE_CONFIG } from './LetsEncryptConfig';
 import { LetsEncryptService } from './LetsEncryptService';
 
-import { CLUSTER_MASTER_TASK } from '../cluster/ClusterLifecycle';
+import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
 import { ClusterModule } from '../cluster/ClusterModule';
+import { LetsEncryptController } from './LetsEncryptController';
+import { HTTP_SSL_PROVIDER, HttpSSLProvider } from '../http/HttpServer';
+import { HTTP_REDIRECT_ROUTER, HttpRouterImpl } from '../http/HttpRouter';
 
 
 @Module({
@@ -14,21 +17,24 @@ import { ClusterModule } from '../cluster/ClusterModule';
     providers: [
         LetsEncryptService,
         {
-            token: CLUSTER_MASTER_TASK,
-            factory: (service: LetsEncryptService, config: LetsEncryptConfig) => {
-
-                // ensure certificates are loaded
-                console.log('LetsEncrypt on Master');
-
-                return service.getCertificates().then(() => {
-
-                    console.log('LetsEncrypt done on Master');
-                });
-
+            token: HTTP_SSL_PROVIDER,
+            factory: (service: LetsEncryptService): HttpSSLProvider => {
+                return service;
             },
-            deps: [LetsEncryptService, LE_CONFIG],
+            deps: [LetsEncryptService]
+        },
+        {
+            token: CLUSTER_WORKER_INIT,
+            factory: (router: HttpRouterImpl) => {
+                router.add(LetsEncryptController);
+            },
+            deps: [HTTP_REDIRECT_ROUTER],
             multi: true
         }
+    ],
+
+    declarations: [
+        //LetsEncryptController
     ]
 })
 export class LetsEncryptModule {

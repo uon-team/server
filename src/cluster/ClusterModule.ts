@@ -1,6 +1,6 @@
 import { Module, ModuleWithProviders, APP_INITIALIZER } from "@uon/core";
 import { ClusterService } from "./ClusterService";
-import { ClusterConfig, CLUSTER_CONFIG } from "./ClusterConfig";
+import { ClusterConfig, CLUSTER_CONFIG, CLUSTER_DEFAULT_CONFIG } from "./ClusterConfig";
 
 
 
@@ -24,6 +24,16 @@ export class ClusterModule {
 
     static WithConfig(config: ClusterConfig): ModuleWithProviders {
 
-        return null;
+        let merged = Object.assign({}, CLUSTER_DEFAULT_CONFIG, config);
+
+        return {
+            module: ClusterModule,
+            providers: [
+                {
+                    token: CLUSTER_CONFIG,
+                    value: merged
+                }
+            ]
+        };
     }
 }

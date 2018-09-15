@@ -13,7 +13,10 @@ import { isMaster } from 'cluster';
 import * as _path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as tls from 'tls';
+
 import { HTTP_CONFIG, HttpConfig } from '../http/HttpConfig';
+import { ClusterService } from '../cluster/ClusterService';
 
 const ACME_PROD = 'https://acme-v01.api.letsencrypt.org';
 const ACME_STAGING = 'https://acme-staging.api.letsencrypt.org';
@@ -25,8 +28,12 @@ export class LetsEncryptService {
     private storageAdapter: LetsEncryptStorageAdapter;
     private waitingForChallenge: boolean = false;
 
+    private _secureContexts: { [k: string]: tls.SecureContext } = {};
+    private _defaultCert: Certificate;
+
+
     constructor(@Inject(LE_CONFIG) private config: LetsEncryptConfig,
-        @Inject(HTTP_CONFIG) private httpConfig: HttpConfig) {
+        private cluster: ClusterService) {
 
         // default for tempDir
         config.tempDir = config.tempDir || os.tmpdir();
@@ -37,10 +44,51 @@ export class LetsEncryptService {
     }
 
     /**
+    * Get the tls secure context for a given domain, used for SNICallback
+    * @param domain 
+    */
+    getSecureContext(domain: string): Promise<tls.SecureContext> {
+        return Promise.resolve(this._secureContexts[domain]);
+    }
+
+    /**
+     * Fetch the default cert and key
+     */
+    getDefault(): Promise<{ key: any, cert: any }> {
+
+        let p = Promise.resolve();
+
+        if (!this._defaultCert) {
+
+            p = p.then(() => {
+
+                const lock_name = "lets-encrypt-get-certs";
+
+                // the first one here acquires a lock
+                return this.cluster.lock(lock_name)
+                    .then((res) => {
+
+                        return this.getCertificates().then(() => {
+
+                            // lock owner needs to unlock
+                            if (res) {
+                                this.cluster.unlock(lock_name);
+                            }
+
+                        });
+                    })
+
+            });
+        }
+
+        return p.then(() => this._defaultCert);
+    }
+
+    /**
      * Retrieve certitificate for the domains in config from where ever they come from
      * 
      */
-    getCertificates()/*: Promise<Certificate[]>*/ {
+    getCertificates(): Promise<Certificate[]> {
 
         // get the account first
         return this.storageAdapter.getAccount(this.config.account)
@@ -99,6 +147,19 @@ export class LetsEncryptService {
 
                         return Promise.all(promises)
                             .then((values) => {
+
+                                // create secure contexts
+                                values.forEach((c) => {
+
+                                    this._secureContexts[c.domain] = tls.createSecureContext({
+                                        key: c.key,
+                                        cert: c.cert
+                                    });
+                                });
+
+                                // set first cert as default
+                                this._defaultCert = values[0];
+
                                 return values;
                             });
 
@@ -126,7 +187,7 @@ export class LetsEncryptService {
      */
     handleChallengeRequest(req: IncomingMessage, res: ServerResponse) {
 
-        if(req.url.indexOf('.well-known/acme-challenge/') == -1) {
+        if (req.url.indexOf('.well-known/acme-challenge/') == -1) {
             res.writeHead(404);
             res.end("Not Found");
             return;
@@ -138,7 +199,7 @@ export class LetsEncryptService {
 
         console.log('LE asked challenge ' + token);
 
-        
+
         return this.config.storageAdapter.getChallenge(token)
             .then((c) => {
 
@@ -188,15 +249,6 @@ export class LetsEncryptService {
                 return this.storageAdapter.saveChallenge(challenge)
                     .then(() => {
 
-                        // start a temporary http server so we can receive the challenge respons
-                        return this.startChallengeServer().then((s) => {
-                            console.log('LE started temp server')
-                            server = s;
-                        });
-
-                    })
-                    .then(() => {
-
                         // notify LE that we have generated a challenge
                         return client.notifyChallengeReady(challenge_uri, challenge);
 
@@ -206,16 +258,6 @@ export class LetsEncryptService {
                         // wait until LE has figured out the puzzle
                         return client.waitForChallenge(challenge_uri);
 
-                    }).then(() => {
-
-                        // shutdown temp server
-                        return new Promise((resolve, reject) => {
-                            server.close(() => {
-                                console.log('LE closed temp server')
-                                resolve();
-                                server = null;
-                            });
-                        });
                     });
 
 
@@ -255,19 +297,6 @@ export class LetsEncryptService {
 
     }
 
-    private startChallengeServer(): Promise<Server> {
-
-        return new Promise((resolve, reject) => {
-
-            let server = createServer((req, res) => {
-                this.handleChallengeRequest(req, res);
-            });
-
-            server.listen(this.httpConfig.plainPort, (err: any) => {
-                resolve(server);
-            });
-        });
-    }
 
     private generateCertificate(domain: string): Certificate {
 
