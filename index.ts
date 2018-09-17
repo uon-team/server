@@ -4,7 +4,7 @@ export { ClusterModule } from './src/cluster/ClusterModule';
 export { ClusterService } from './src/cluster/ClusterService';
 export { CLUSTER_CONFIG, ClusterConfig } from './src/cluster/ClusterConfig';
 export { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from './src/cluster/ClusterLifecycle';
-export { LockAdapter } from './src/cluster/LockAdapter';
+export { LockAdapter, ClusterLock } from './src/cluster/ClusterLock';
 export { FileLockAdapter } from './src/cluster/adapters/FileLockAdapter';
 
 // Http exports

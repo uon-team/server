@@ -94,7 +94,7 @@ export class LeafController {
         }),
 
         ClusterModule.WithConfig({
-            enabled: false,
+            enabled: true,
             concurrency: 2,
             lockAdapter: new FileLockAdapter()
         })

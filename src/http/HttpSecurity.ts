@@ -57,7 +57,7 @@ export interface HttpSecurityConfigureOptions {
     /**
      * Content-Security-Policy options to set in headers
      */
-    csp?: ContentSecurityPolicyOptions
+    csp?: ContentSecurityPolicyOptions;
 
 }
 

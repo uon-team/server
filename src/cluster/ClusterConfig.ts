@@ -1,6 +1,6 @@
 import { InjectionToken } from "@uon/core";
 
-import { LockAdapter } from './LockAdapter';
+import { LockAdapter } from './ClusterLock';
 import { FileLockAdapter } from "./adapters/FileLockAdapter";
 
 

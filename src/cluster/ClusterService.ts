@@ -95,8 +95,8 @@ export class ClusterService {
             })
     }
 
-    lock(token: string, unique: boolean = false): Promise<boolean> {
-        return this.config.lockAdapter.lock(token, unique);
+    lock(token: string, duration: number = 0): Promise<boolean> {
+        return this.config.lockAdapter.lock(token, duration);
     }
 
     unlock(token: string) {

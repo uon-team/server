@@ -1,4 +1,4 @@
-import { LockAdapter } from "../LockAdapter";
+import { LockAdapter, ClusterLock } from "../ClusterLock";
 
 import * as fs from 'fs'
 import * as os from 'os';
@@ -8,14 +8,11 @@ export class FileLockAdapter implements LockAdapter {
 
 
     private _locks: string[] = [];
-
-    private _terminated: boolean;
-
     constructor(private basePath: string = os.tmpdir()) {
 
     }
 
-    lock(token: string, unique?: boolean) {
+    lock(token: string, duration?: number) {
 
         if (this._locks.indexOf(token) > -1) {
             return Promise.reject(new Error(`Lock for ${token} already acquired`));
@@ -82,9 +79,6 @@ export class FileLockAdapter implements LockAdapter {
 
             fs.exists(filepath, (res) => {
 
-                if (this._terminated) {
-                    return reject(new Error('Process termininated'));
-                }
                 resolve(res);
             });
         });
@@ -101,7 +95,7 @@ export class FileLockAdapter implements LockAdapter {
                 return this.checkLock(file)
                     .then((res) => {
 
-                        if (res && !this._terminated) {
+                        if (res) {
                             return new Promise((r) => {
 
                                 setTimeout(() => {
