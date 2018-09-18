@@ -40,7 +40,7 @@ export { LetsEncryptModule } from './src/letsencrypt/LetsEncryptModule';
 export { LetsEncryptService } from './src/letsencrypt/LetsEncryptService';
 export { Account as LetsEncryptAccount, Certificate as LetsEncryptCertificate, Challenge as LetsEncryptChallenge } from './src/letsencrypt/Models';
 export { LetsEncryptStorageAdapter } from './src/letsencrypt/StorageAdapter';
-export { LetsEncryptLocalStorageAdapter } from './src/letsencrypt/adapters/LocalStorageAdapter';
+export { LetsEncryptFsStorageAdapter } from './src/letsencrypt/adapters/FsStorageAdapter';
 export { LetsEncryptController } from './src/letsencrypt/LetsEncryptController';
 
 

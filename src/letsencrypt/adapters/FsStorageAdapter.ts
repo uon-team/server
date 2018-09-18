@@ -3,10 +3,11 @@ import { Certificate, Account, Challenge } from "../Models";
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { FsAdapter } from "../../fs/FsAdapter";
 
 
 export interface LocalStorageAdapterOptions {
-    baseDir: string;
+    fsAdapter: FsAdapter;
 }
 
 
@@ -14,16 +15,20 @@ export interface LocalStorageAdapterOptions {
  * Storage adapter for storing Let's Encrypt accounts and certificates 
  * on the local hard disk. make sure the baseDir is not publicly accessible.
  */
-export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter {
+export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
 
-    private _accounts: string;
-    private _certificates: string;
-    private _challenges: string;
+    private _accounts: string = 'accounts';
+    private _certificates: string = 'certs';
+    private _challenges: string = 'challenges'
+
+    private _fs: FsAdapter
 
     constructor(options: LocalStorageAdapterOptions) {
 
         // make sure directories exist
-        this.createDirectories(options.baseDir);
+        //this.createDirectories(options.baseDir);
+
+        this._fs = options.fsAdapter;
 
     }
 
@@ -51,7 +56,7 @@ export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter
 
         return this.readJson(fp).then((cert: Certificate) => {
 
-            if(cert) {
+            if (cert) {
                 cert.renewBy = new Date(cert.renewBy);
             }
             return cert;
@@ -106,44 +111,22 @@ export class LetsEncryptLocalStorageAdapter implements LetsEncryptStorageAdapter
 
     private readJson(filepath: string): Promise<any> {
 
-        return new Promise((resolve, reject) => {
-
-            fs.readFile(filepath, 'utf8', (err, buffer) => {
-
-                if(err) {
-                    return resolve(null);
-                }
-
-                try {
-                    let obj = JSON.parse(buffer);
-                    resolve(obj);
-                }   
-                catch(ex) {
-
-                    console.warn(ex);
-                    return resolve(null);
-                }
-
+        return this._fs.read(filepath)
+            .then((buffer) => {
+                return JSON.parse(buffer.toString('utf8'));
             });
 
-
-        });
     }
 
     private writeJson(filepath: string, obj: any): Promise<void> {
 
-        return new Promise((resolve, reject) => {
 
-            fs.writeFile(filepath, JSON.stringify(obj, null, 2), (err) => {
+        let res = JSON.stringify(obj, null, 2);
 
-                if(err) {
-                    return reject(err);
-                }
-
-                resolve();
+        return this._fs.write(filepath, Buffer.from(res))
+            .then(() => {
 
             });
 
-        });
     }
 }
