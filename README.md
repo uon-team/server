@@ -86,7 +86,8 @@ You will never have to use HttpContext directly, instead use HttpResponse and Ht
 
 The LetsEncryptModule is responsible for obtaining certificates from the authority. This module works along with the HttpModule in the following way:
 
-- When the application starts, the HttpServer looks up the LetsEncryptService.
+- When the application starts, LetsEncryptModule registers itself as the HTTP_SSL_PROVIDER
+- The HttpServer looks up the HTTP_SSL_PROVIDER.
 - If it is found, HttpServer requests the certificates. A plain http server start listening for requests at this point.
 - If no certificates can be found using the provided storage adapter, the service will request them from the authority.
 - An http-01 challenge is prepared, sent to LE and waits for the authority to request the keyauth from this here server (in plain http)
@@ -140,7 +141,7 @@ Only the http-01 challenge has been implemented. There are no plans to implement
 
 ### Storage adapters
 
- A local file system adapter is provided (LetsEncryptLocalStorageAdapter) for simple applications running on a single server. In other cases, implementing a storage adapter for MongoDB or Redis is recommended. This can be done by implementing the interface LetsEncryptStorageAdapter.
+ A generic storage adapter is provided (LetsEncryptFsStorageAdapter) using any FsAdapter as backend. Implementing a storage adapter for MongoDB or Redis can be done by implementing the interface LetsEncryptStorageAdapter.
 
 
 
@@ -152,14 +153,48 @@ A local file system adapter is provided (LocalFsAdapter) for access to a folder.
 
 We implemented a S3 adapter in @uon/server-aws.
 
+## Cluster Module
+The cluster module is responsible for the application's lifecycle. By default, clustering is not enabled and run's the app on a single thread.
+
+To enable clustering, you must provide a config in your providers (or imports with ClusterModule.WithConfig(...))
+
+```typescript
+import {
+    ClusterModule, 
+    FileLockAdapter
+} from '@uon/server';
+
+@Module({
+    imports: [
+        ...
+
+        ClusterModule.WithConfig({
+            enabled: true,
+            concurrency: 8,
+            lockAdapter: new FileLockAdapter()
+        })
+        ...
+    ]
+})
+export class MyMainModule {}
+```
+
+More info coming soon.
+
+
+### Lifecycle hooks
+
+You can hook into the app's lifecycle with these multi-providers :
+ - CLUSTER_MASTER_INIT ; Execute task on launch on the master process only
+ - CLUSTER_WORKER_INIT ; Execute task on launch on the worker processes (on master if clustering is disabled)
+ - CLUSTER_MASTER_EXIT ; Execute task when the application exits on master process
+ - CLUSTER_WORKER_EXIT ; Execute task when the application exits on worker process
+
+
 ## Logging
 @uon/server provides utilities for logging. You can implement your own logger by implementing the interface LogAdapter.
 
 
-## Limitations
-
-### Clustering
-Clustering is not yet supported. There are a few things to consider before implementing support for forking to multiple processes. The first thing that comes to mind is the Let's Encrypt implementation.
 
 ## Contributions
 
