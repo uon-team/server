@@ -1,10 +1,12 @@
 import { InjectionToken, Provider } from '@uon/core';
 import { HttpRequestBodyConfig, HttpRequestBody, HttpRequestBodyBufferFactory, HTTP_REQUEST_BODY_CONFIG } from './HttpRequestBody';
-import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './HttpCache';
-import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './HttpEncoding';
-import { HttpCookies } from './HttpCookies';
-import { HttpAuthorization } from './HttpAuthorization';
-import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './HttpRange';
+
+
+import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './transforms/HttpCache';
+import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transforms/HttpEncoding';
+import { HttpCookies } from './transforms/HttpCookies';
+import { HttpAuthorization } from './transforms/HttpAuthorization';
+import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './transforms/HttpRange';
 
 
 // the unique http config token

@@ -14,17 +14,22 @@ export { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './src/http/HttpCo
 export { HttpContext } from './src/http/HttpContext';
 export { HttpRequest } from './src/http/HttpRequest';
 export { HttpResponse } from './src/http/HttpResponse';
-export { HttpAuthorization } from './src/http/HttpAuthorization';
-export { HttpCookies } from './src/http/HttpCookies';
-export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/HttpCache';
-export { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './src/http/HttpEncoding';
-export { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './src/http/HttpRange';
 export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
-export { HttpSecurity } from './src/http/HttpSecurity';
-export { JsonTransform } from './src/http/JsonTransform';
 
 export * from './src/http/HttpRouter';
 export { HttpError } from './src/http/HttpError';
+
+
+// Http transforms
+export { HttpAuthorization } from './src/http/transforms/HttpAuthorization';
+export { HttpCookies } from './src/http/transforms/HttpCookies';
+export { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './src/http/transforms/HttpCache';
+export { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './src/http/transforms/HttpEncoding';
+export { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './src/http/transforms/HttpRange';
+export { HttpSecurity } from './src/http/transforms/HttpSecurity';
+export { JsonTransform } from './src/http/transforms/JsonTransform';
+
+
 
 // fs exports
 export { FsModule } from './src/fs/FsModule';

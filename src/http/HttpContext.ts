@@ -35,9 +35,6 @@ export interface HttpContextOptions {
 
     // a list of providers for the request-scoped injector
     providers: Provider[];
-
-    // the router on which the context operates 
-    router: Router<HttpRouter>;
 }
 
 /**
@@ -54,9 +51,6 @@ export class HttpContext extends EventSource {
     private _root: Injector;
     private _injector: Injector;
     private _providers: Provider[];
-    private _router: Router<HttpRouter>;
-
-
     private _processing: boolean = false;
 
 
@@ -75,14 +69,11 @@ export class HttpContext extends EventSource {
         this.request = new HttpRequest(options.req);
         this.response = new HttpResponse(options.res);
 
-        this._router = options.router;
-
-
     }
 
     /**
      * Adds an event listener to be called before an error is sent,
-     * this can be used to intercept errors an treat them properly
+     * this can be used to intercept errors and handle them gracefully
      */
     on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
 
@@ -96,9 +87,9 @@ export class HttpContext extends EventSource {
 
 
     /**
-     * Process the request
+     * Process the matching routes
      */
-    process() {
+    process(matches: RouteMatch[]) {
 
         // fool guard
         if (this._processing) {
@@ -106,11 +97,10 @@ export class HttpContext extends EventSource {
         }
         this._processing = true;
 
-        // get the app's root router
-        const router: Router<HttpRouter> = this._router;
-
-        // get the set of matches, if any
-        const matches = router.match(this.request.uri.pathname, { method: this.request.method });
+        // if no matches to process, reject with 404
+        if(matches.length == 0) {
+            return Promise.reject(new HttpError(404));
+        }
 
         // we need a list of providers before we create an injector
         // start with this for a start
@@ -213,28 +203,6 @@ export class HttpContext extends EventSource {
 
 }
 
-
-
-
-/**
- * @private
- * @param req 
- */
-function ParseUrl(req: IncomingMessage) {
-
-    let uri = UrlParse(req.url, true);
-
-    let host_parts = req.headers.host ? req.headers.host.split(':') : [null, null];
-    let host = host_parts[0];
-    let port = host_parts[1];
-
-    uri.protocol = (req.connection instanceof TLSSocket) ? 'https:' : 'http:';
-    uri.host = req.headers.host;
-    uri.hostname = host;
-    uri.port = port;
-
-    return uri;
-}
 
 
 

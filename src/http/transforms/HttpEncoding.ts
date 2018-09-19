@@ -1,10 +1,10 @@
 
 import { Inject, Injectable, InjectionToken } from '@uon/core';
-import { FsAdapter, FileStat } from '../fs/FsAdapter';
+import { FsAdapter, FileStat } from '../../fs/FsAdapter';
 import { OutgoingHttpHeaders } from 'http';
 import { gzip, createGzip } from 'zlib';
-import { HttpRequest } from './HttpRequest';
-import { HttpResponse } from './HttpResponse';
+import { HttpRequest } from '../HttpRequest';
+import { HttpResponse } from '../HttpResponse';
 import { HttpTransform } from './HttpTransform';
 import { Readable } from 'stream';
 import { extname } from 'path';

@@ -1,7 +1,7 @@
 
 import { Injectable } from '@uon/core';
 import { HttpTransform } from './HttpTransform';
-import { HttpResponse } from './HttpResponse';
+import { HttpResponse } from '../HttpResponse';
 
 
 

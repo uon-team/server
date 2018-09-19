@@ -19,28 +19,27 @@ import {
 } from '@uon/core';
 
 
-export const HTTP_ROUTER = new InjectionToken<Router<HttpRouter>>("Default Http router");
+export const HTTP_ROUTER = new InjectionToken<Router<HttpController, HttpRoute>>("Default Http router");
+export const HTTP_REDIRECT_ROUTER = new InjectionToken<Router<HttpController, HttpRoute>>("Http router to bypass https redirects")
 
-export const HTTP_REDIRECT_ROUTER = new InjectionToken<Router<HttpRouter>>("Http router to bypass https redirects")
 
+export interface HttpControllerDecorator {
 
-export interface HttpRouterDecorator {
-
-    (meta: HttpRouter): TypeDecorator;
-    new(meta: HttpRouter): HttpRouter;
+    (meta: HttpController): TypeDecorator;
+    new(meta: HttpController): HttpController;
 
 }
 
-export const HttpRouter: HttpRouterDecorator = MakeTypeDecorator(
+export const HttpController: HttpControllerDecorator = MakeTypeDecorator(
     "HttpRouter",
-    (meta: HttpRouter) => meta,
+    (meta: HttpController) => meta,
     null,
-    (cls: any, meta: HttpRouter) => {
+    (cls: any, meta: HttpController) => {
 
         // ensure parent is HttpRouter decorated
         if (meta.parent) {
 
-            let parent_ctrl = FindMetadataOfType(META_ANNOTATIONS, meta.parent, HttpRouter);
+            let parent_ctrl = FindMetadataOfType(META_ANNOTATIONS, meta.parent, HttpController);
 
             if (!parent_ctrl) {
                 throw new Error(`HttpRouter: parent was defined 
@@ -60,7 +59,7 @@ export const HttpRouter: HttpRouterDecorator = MakeTypeDecorator(
     }
 );
 
-export interface HttpRouter {
+export interface HttpController {
 
     /**
      * optional router name
@@ -75,7 +74,7 @@ export interface HttpRouter {
     /**
      * the base path for route handling
      */
-    path?: string;
+    path: string;
 
     /**
      * the order in which the routers are executed
@@ -138,94 +137,16 @@ export interface HttpRoute {
 /**
  * Implementation of Router for http
  */
-export class HttpRouterImpl extends Router<HttpRouter> {
+export class HttpRouter extends Router<HttpController, HttpRoute> {
 
     constructor() {
-        super([MatchMethodFunc]);
+        super(HttpController, HttpRoute, [MatchMethodFunc]);
     }
 
-
-    add(type: Type<any>, moduleRef?: ModuleRef<any>) {
-
-        let properties = GetMetadata(META_PROPERTIES, type.prototype) || EMPTY_OBJECT;
-        let ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, type, HttpRouter);
-
-        if (ctrl) {
-
-            let handlers: RouteInfo<HttpRoute>[] = [];
-
-            // go over all properties to find HttpRoutes
-            for (let name in properties) {
-                if (Array.isArray(properties[name])) {
-                    properties[name].forEach((p: any) => {
-                        if (p instanceof HttpRoute) {
-
-                            let h = p as HttpRoute;
-                            let param_keys: string[] = [];
-
-                            // build regex
-                            let regex = PathUtils.pathToRegex(PathUtils.join(ctrl.path, h.path) || '/', param_keys);
-
-                            handlers.push({
-                                regex: regex,
-                                metadata: h,
-                                keys: param_keys
-                            });
-
-                        }
-                    });
-                }
-            }
-
-            // we only create an entry if path is defined
-            if (ctrl.path) {
-
-                let rbase: HttpRouterImpl = this;
-
-                // find parent if needed
-                if (ctrl.parent) {
-
-                    for (let j = 0; j < this.records.length; ++j) {
-
-                        if (this.records[j].route.type === ctrl.parent) {
-                            rbase = this.records[j].route.router as HttpRouterImpl;
-                            break;
-                        }
-                    }
-
-                    if (rbase === this) {
-                        throw new Error(`Couldnt find parent with type ${ctrl.parent.name}. Make sure it has been added first.`);
-                    }
-
-                }
-
-                let keys: string[] = [];
-                let regex = PathUtils.pathToRegex(ctrl.path + '(.*)', keys);
-
-                rbase.records.push({
-                    route: {
-                        type: type,
-                        path: ctrl.path,
-                        metadata: ctrl,
-                        router: new HttpRouterImpl(),
-                        routes: handlers,
-                        module: moduleRef
-                    },
-                    regex: regex
-                });
-            }
-        }
-
-        this.sort((a, b) => {
-            return a.route.metadata.priority - b.route.metadata.priority;
-        });
-
-
-    }
 
     static FromModuleRefs(moduleRefs: Map<Type<any>, ModuleRef<any>>) {
 
-        let ctrls: HttpRouter[] = [];
+        let ctrls: HttpController[] = [];
 
         for (let [module_type, module_ref] of moduleRefs) {
 
@@ -233,7 +154,7 @@ export class HttpRouterImpl extends Router<HttpRouter> {
 
             for (let i = 0; i < declarations.length; ++i) {
                 
-                let ctrl: HttpRouter = FindMetadataOfType(META_ANNOTATIONS, declarations[i], HttpRouter);
+                let ctrl: HttpController = FindMetadataOfType(META_ANNOTATIONS, declarations[i], HttpController);
                 if(ctrl) {
                     ctrls.push(ctrl);
                 }
@@ -251,7 +172,7 @@ export class HttpRouterImpl extends Router<HttpRouter> {
             return 0;
         });
 
-        const root = new HttpRouterImpl();
+        const root = new HttpRouter();
 
         ctrls.forEach((c) => {
             root.add(c.type);
@@ -268,8 +189,6 @@ export class HttpRouterImpl extends Router<HttpRouter> {
 
 
 
-
-const EMPTY_OBJECT: any = {};
 const EMPTY_ARRAY: any[] = [];
 
 

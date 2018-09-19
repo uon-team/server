@@ -3,13 +3,14 @@ import { Application, Module, ModuleWithProviders, ObjectUtils, APP_INITIALIZER 
 import { HttpServer } from './HttpServer';
 import { HttpContext } from './HttpContext';
 import { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './HttpConfig';
-import { HttpCache } from './HttpCache';
-import { HttpCookies } from './HttpCookies';
-import { HttpEncoding } from './HttpEncoding';
-import { HttpRange } from './HttpRange';
 import { HttpRequestBody } from './HttpRequestBody';
 
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouterImpl } from './HttpRouter';
+import { HttpCache } from './transforms/HttpCache';
+import { HttpCookies } from './transforms/HttpCookies';
+import { HttpEncoding } from './transforms/HttpEncoding';
+import { HttpRange } from './transforms/HttpRange';
+
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter } from './HttpRouter';
 
 import { ClusterModule } from '../cluster/ClusterModule';
 import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
@@ -27,14 +28,14 @@ import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
         {
             token: HTTP_ROUTER,
             factory: (app: Application) => {
-                return HttpRouterImpl.FromModuleRefs(app.modules);
+                return HttpRouter.FromModuleRefs(app.modules);
             },
             deps: [Application]
 
         },
         {
             token: HTTP_REDIRECT_ROUTER,
-            value: new HttpRouterImpl()
+            value: new HttpRouter()
         },
         {
             token: CLUSTER_WORKER_INIT,
