@@ -1,4 +1,4 @@
-import { HttpRouter, HttpRoute } from '../http/HttpRouter';
+import { HttpController, HttpRoute } from '../http/HttpRouter';
 import { HttpRequest } from '../http/HttpRequest';
 import { HttpResponse } from '../http/HttpResponse';
 import { LetsEncryptService } from './LetsEncryptService';
@@ -7,7 +7,7 @@ import { Inject } from '@uon/core';
 import { HttpError } from '../http/HttpError';
 
 
-@HttpRouter({
+@HttpController({
     path: '/.well-known/acme-challenge'
 })
 export class LetsEncryptController {

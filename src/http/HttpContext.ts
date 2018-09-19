@@ -8,7 +8,7 @@ import { ReadStream } from 'fs';
 
 import { HttpError } from './HttpError';
 import { GetHttpContextDefaultProviders } from './HttpConfig';
-import { HttpRouter } from './HttpRouter';
+import { HttpController } from './HttpRouter';
 
 import { HttpResponse } from './HttpResponse';
 import { HttpRequest } from './HttpRequest';
