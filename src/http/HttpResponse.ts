@@ -1,6 +1,6 @@
 import { OutgoingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
 import { Writable, Stream, Readable } from "stream";
-import { HttpTransform } from "./HttpTransform";
+import { HttpTransform } from "./transforms/HttpTransform";
 
 
 
