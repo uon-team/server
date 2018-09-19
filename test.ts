@@ -8,8 +8,15 @@ import { ClusterService } from './src/cluster/ClusterService';
 import * as cluster from 'cluster';
 import { CLUSTER_WORKER_INIT } from "./src/cluster/ClusterLifecycle";
 import { FileLockAdapter } from "./src/cluster/adapters/FileLockAdapter";
-import { HttpRouter, HttpRoute } from "./src/http/HttpRouter";
+import { HttpController, HttpRoute, HttpRouter } from "./src/http/HttpRouter";
 import { HttpResponse } from "./src/http/HttpResponse";
+
+import { LocalFsAdapter } from './src/fs/adapters/LocalFsAdapter';
+import { HttpError } from "./src/http/HttpError";
+import { HttpRequest } from "./src/http/HttpRequest";
+import { HttpUpgradeContext } from "./src/http/HttpUpgradeContext";
+import { WsModule } from "./src/ws/WsModule";
+import { WsController, WsRoute } from "./src/ws/WsController";
 
 
 @Injectable()
@@ -23,9 +30,9 @@ export class WorkerTest {
 
         this.service.lock('test-lock').then((res) => {
 
-           // console.log(cluster.worker.id, res);
+            // console.log(cluster.worker.id, res);
 
-            if(res) {
+            if (res) {
                 setTimeout(() => {
 
                     this.service.unlock('test-lock').then(() => {
@@ -39,7 +46,7 @@ export class WorkerTest {
 }
 
 
-@HttpRouter({
+@HttpController({
     path: '/'
 })
 export class RootController {
@@ -60,13 +67,35 @@ export class RootController {
 }
 
 
-@HttpRouter({
+@WsController({
+    path: '/testws'
+})
+export class MyWSController {
+
+    constructor(private req: HttpRequest, private context: HttpUpgradeContext) {
+
+    }
+
+    @WsRoute({
+        path: '/'
+    })
+    upgradeConnection() {
+
+        console.log('ws routing connected');
+
+        
+        
+    }
+}
+
+
+@HttpController({
     path: '/what',
     parent: RootController
 })
 export class LeafController {
 
-    constructor(private res: HttpResponse) {
+    constructor(private response: HttpResponse) {
 
     }
 
@@ -76,8 +105,21 @@ export class LeafController {
     })
     homePage() {
 
-        console.log(cluster.worker.id);
-        this.res.send('Hello world What?')
+        let fs = new LocalFsAdapter({basePath: __dirname + '/temp'});
+        return fs.stat('index.html').then((stats) => {
+
+
+            this.response.setHeader('Content-Type', stats.mimeType);
+
+            this.response.stream(fs.createReadStream('index.html'));
+
+            return this.response.finish();
+
+
+        }).catch((err) => {
+
+            throw new HttpError(404);
+        });
     }
 }
 
@@ -94,25 +136,19 @@ export class LeafController {
         }),
 
         ClusterModule.WithConfig({
-            enabled: true,
+            enabled: false,
             concurrency: 2,
             lockAdapter: new FileLockAdapter()
-        })
+        }),
+        WsModule
     ],
     providers: [
-        WorkerTest,
-        {
-            token: CLUSTER_WORKER_INIT,
-            factory: (w: WorkerTest) => {
-                return w.start();
-            },
-            deps: [WorkerTest],
-            multi: true
-        }
+     
     ],
     declarations: [
         LeafController,
-        RootController
+        RootController,
+        MyWSController
     ]
 })
 export class TestModule {

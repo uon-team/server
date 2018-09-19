@@ -1,10 +1,10 @@
 
 import { Inject, Injectable, InjectionToken, ObjectUtils } from '@uon/core';
 import { Stats } from 'fs';
-import { FileStat } from '../fs/FsAdapter';
+import { FileStat } from '../../fs/FsAdapter';
 import { OutgoingHttpHeaders } from 'http';
-import { HttpRequest } from './HttpRequest';
-import { HttpResponse } from './HttpResponse';
+import { HttpRequest } from '../HttpRequest';
+import { HttpResponse } from '../HttpResponse';
 import { HttpTransform } from './HttpTransform';
 
 // the config token

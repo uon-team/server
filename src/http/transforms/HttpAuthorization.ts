@@ -1,5 +1,5 @@
 import { Injectable, ObjectUtils, StringUtils } from '@uon/core';
-import { HttpRequest } from './HttpRequest';
+import { HttpRequest } from '../HttpRequest';
 
 
 interface WWWAuthenticateResponse {

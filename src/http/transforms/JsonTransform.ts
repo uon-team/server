@@ -3,7 +3,7 @@
 
 
 import { HttpTransform } from './HttpTransform';
-import { HttpResponse } from './HttpResponse';
+import { HttpResponse } from '../HttpResponse';
 import { Readable } from 'stream';
 
 
@@ -50,8 +50,8 @@ export class JsonTransform extends HttpTransform {
         // set content type to json
         response.setHeader('Content-Type', 'application/json');
 
-        // maybe specify length?
-
+        // specify length also
+        response.setHeader('Content-Length', Buffer.byteLength(result));
 
         // create readable stream from json string
         let readable = new Readable();

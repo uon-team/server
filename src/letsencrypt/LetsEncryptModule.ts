@@ -7,7 +7,7 @@ import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from '../cluster/ClusterLife
 import { ClusterModule } from '../cluster/ClusterModule';
 import { LetsEncryptController } from './LetsEncryptController';
 import { HTTP_SSL_PROVIDER, HttpSSLProvider } from '../http/HttpServer';
-import { HTTP_REDIRECT_ROUTER, HttpRouterImpl } from '../http/HttpRouter';
+import { HTTP_REDIRECT_ROUTER, HttpRouter } from '../http/HttpRouter';
 
 
 @Module({
@@ -25,7 +25,7 @@ import { HTTP_REDIRECT_ROUTER, HttpRouterImpl } from '../http/HttpRouter';
         },
         {
             token: CLUSTER_WORKER_INIT,
-            factory: (router: HttpRouterImpl) => {
+            factory: (router: HttpRouter) => {
                 router.add(LetsEncryptController);
             },
             deps: [HTTP_REDIRECT_ROUTER],

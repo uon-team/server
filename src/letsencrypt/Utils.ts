@@ -69,7 +69,7 @@ export function UrlBase64Encode(str: string) {
 }
 
 export function Base64Encode(str: string | Buffer) {
-    var buf = str instanceof Buffer ? str : new Buffer(str);
+    var buf = str instanceof Buffer ? str : Buffer.from(str);
     return UrlBase64Encode(buf.toString('base64'));
 }
 

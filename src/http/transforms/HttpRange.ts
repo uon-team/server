@@ -1,10 +1,10 @@
 
 import { Inject, Injectable, InjectionToken, ObjectUtils } from '@uon/core';
-import { FileStat, FsAdapter } from '../fs/FsAdapter';
+import { FileStat, FsAdapter } from '../../fs/FsAdapter';
 import { OutgoingHttpHeaders } from 'http';
-import { HttpError } from './HttpError';
-import { HttpRequest } from './HttpRequest';
-import { HttpResponse } from './HttpResponse';
+import { HttpError } from '../HttpError';
+import { HttpRequest } from '../HttpRequest';
+import { HttpResponse } from '../HttpResponse';
 import { HttpTransform } from './HttpTransform';
 
 

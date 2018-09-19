@@ -1,6 +1,6 @@
 import { Injectable, ObjectUtils } from '@uon/core';
-import { HttpRequest } from './HttpRequest';
-import { HttpResponse } from './HttpResponse';
+import { HttpRequest } from '../HttpRequest';
+import { HttpResponse } from '../HttpResponse';
 import { HttpTransform } from './HttpTransform';
 
 

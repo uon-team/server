@@ -7,9 +7,12 @@ import * as tls from 'tls';
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { HttpContext } from './HttpContext';
+import { HttpUpgradeContext } from './HttpUpgradeContext';
 import { HttpError } from './HttpError';
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter, HttpRouterImpl } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpController, HttpRouter } from './HttpRouter';
 import { Log } from '../log/Log';
+import { Socket } from 'net';
+import { parse as ParseUrl } from 'url';
 
 
 /**
@@ -52,9 +55,6 @@ export class HttpServer extends EventSource {
 
     private _http: Server;
     private _https: https.Server;
-
-    private _redirectRouter: Router<HttpRouter>;
-
 
     constructor(@Inject(HTTP_CONFIG) private config: HttpConfig,
         @Optional() @Inject(HTTP_SSL_PROVIDER) private sslProvider: HttpSSLProvider,
@@ -100,6 +100,59 @@ export class HttpServer extends EventSource {
         this._started = true;
 
 
+        // create plain http server
+        this.spawnHttpServer();
+
+
+        // if an SSL provider is defined, create an https server
+        if (this.sslProvider) {
+
+            return this.spawnHttpsServer()
+                .then(() => {
+                    return this;
+                });
+
+        }
+        else {
+
+
+        }
+
+        return Promise.resolve(this);
+    }
+
+
+    /**
+     * Add an event listener that will be called on every request
+     */
+    on(type: 'request', callback: (context: HttpContext) => any, priority?: number): void;
+
+    /**
+     * Add an event listener that will be called when an HttpError occurs
+     */
+    on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
+
+
+     /**
+     * Add an event listener that with be called when an connection upgrade request
+     */
+    on(type: 'upgrade', callback: (context: HttpUpgradeContext) => any, priority?: number): void;
+
+
+    /**
+     * Adds an event listener
+     * @param type 
+     * @param callback 
+     */
+    on(type: string, callback: (...args: any[]) => any, priority: number = 100) {
+        return super.on(type, callback, priority);
+    }
+
+    /**
+     * Spawns a plain http server (for dev or redirect to https)
+     */
+    private spawnHttpServer() {
+
         // create a plain http server
         this._http = new Server(this.sslProvider ?
             this.handleHttpsRedirect.bind(this) :
@@ -113,41 +166,11 @@ export class HttpServer extends EventSource {
             console.log(`HTTP server listening on ${this.config.host}:${this.config.plainPort}`);
         });
 
-
-        // if an SSL provider is defined, create an https server
-        if (this.sslProvider) {
-
-            return this.spawnHttpsServer()
-                .then(() => {
-                    return this;
-                });
-
+        // bind upgrade only if sslProvider is not defined
+        if (!this.sslProvider) {
+            this._http.on('upgrade', this.handleConnectionUpgrade.bind(this));
         }
-
-        return Promise.resolve(this);
     }
-
-
-    /**
-     * Add an event listener that with be called on every request
-     */
-    on(type: 'request', callback: (context: HttpContext) => any, priority?: number): void;
-
-    /**
-     * Add an event listener that with be called when an HttpError occurs
-     */
-    on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
-
-
-    /**
-     * Adds an event listener
-     * @param type 
-     * @param callback 
-     */
-    on(type: string, callback: (...args: any[]) => any, priority: number = 100) {
-        return super.on(type, callback, priority);
-    }
-
 
     /**
      * (Re)spawns an https server
@@ -203,6 +226,9 @@ export class HttpServer extends EventSource {
                             console.log(`HTTPS server listening on ${this.config.host}:${this.config.port}`);
                         });
 
+                        // listen to upgrade event
+                        this._https.on('upgrade', this.handleConnectionUpgrade.bind(this));
+
                     });
 
 
@@ -225,13 +251,16 @@ export class HttpServer extends EventSource {
         const config = this.config;
 
         // fetch the root http router
-        const router: HttpRouterImpl = this.injector.get(HTTP_ROUTER);
+        const router: HttpRouter = this.injector.get(HTTP_ROUTER);
+
+        // get matches
+        const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method });
+
 
         // create a new context
         const http_context = new HttpContext({
             injector: this.injector,
             providers: this.config.providers,
-            router: router,
             req: req,
             res: res
         });
@@ -252,7 +281,7 @@ export class HttpServer extends EventSource {
             .then(() => {
 
                 // let the context process the request
-                return http_context.process();
+                return http_context.process(matches);
 
             })
             .catch((ex: HttpError) => {
@@ -298,38 +327,61 @@ export class HttpServer extends EventSource {
     }
 
     /**
-     * Handle the http to https redirect and the Let's Encrypt http-01 challenge
+     * Handle the http to https redirect
      */
     private handleHttpsRedirect(req: IncomingMessage, res: ServerResponse) {
 
-        // if let's encrypt service is defined, listen in on the challenge
-        /*if (this.letsencrypt && req.url.indexOf('.well-known/acme-challenge') !== -1) {
-            return this.letsencrypt.handleChallengeRequest(req, res);
-        }*/
+        // fetch the redirect http router
+        const router: HttpRouter = this.injector.get(HTTP_REDIRECT_ROUTER);
 
-        // fetch the root http router
-        const router: HttpRouterImpl = this.injector.get(HTTP_REDIRECT_ROUTER);
+        // get matches
+        const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method });
 
         // create a new context
         const http_context = new HttpContext({
             injector: this.injector,
             providers: this.config.providers,
-            router: router,
             req: req,
             res: res
         });
 
-        http_context.process()
+        http_context.process(matches)
             .catch((ex: HttpError) => {
 
-                // always redirect
+                // always redirect on error
                 const new_url = 'https://' + req.headers.host + req.url;
                 res.writeHead(301, { Location: new_url });
                 res.end();
 
             });
 
+
+
+    }
+
+    /**
+     * Handles http upgrade request
+     * @param req 
+     * @param socket 
+     * @param head 
+     */
+    private handleConnectionUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
+
+
+        // fetch the upgrade http router
+        //const router: HttpRouterImpl = this.injector.get(HTTP_UPGRADE_ROUTER);
         
+        // get matches
+        //const matches = router.match(ParseUrl(req.url, false).pathname, { method: 'UPGRADE' });
+
+        // create a new context
+        const http_context = new HttpUpgradeContext({
+            injector: this.injector,
+            req: req,
+            head: head
+        });
+
+        this.emit('upgrade', http_context);
 
     }
 

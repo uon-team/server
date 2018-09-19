@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hi there</title>
+
+</head>
+
+<body>
+    <h1>Hello World!</h1>
+
+    <script>
+        let ws = new WebSocket('ws://localhost:8080/testws');
+        ws.addEventListener('open', () => {
+
+            console.log('wrod!');
+        });
+
+        ws.addEventListener('close', () => {
+
+            console.log('closed!');
+        })
+
+    </script>
+</body>
+
+</html>

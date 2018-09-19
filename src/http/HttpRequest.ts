@@ -1,6 +1,7 @@
 import { IncomingMessage, IncomingHttpHeaders } from "http";
 import { Url, parse as UrlParse } from "url";
 import { TLSSocket } from "tls";
+import { Socket } from "net";
 
 
 
@@ -21,6 +22,13 @@ export class HttpRequest {
      */
     get secure(): boolean {
         return (this._request.connection instanceof TLSSocket);
+    }
+
+    /**
+     * Get the socket
+     */
+    get socket(): Socket {
+        return this._request.socket;
     }
 
     /**
