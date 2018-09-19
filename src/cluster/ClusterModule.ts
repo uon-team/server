@@ -2,8 +2,6 @@ import { Module, ModuleWithProviders, APP_INITIALIZER } from "@uon/core";
 import { ClusterService } from "./ClusterService";
 import { ClusterConfig, CLUSTER_CONFIG, CLUSTER_DEFAULT_CONFIG } from "./ClusterConfig";
 
-
-
 @Module({
 
     providers: [ 
@@ -15,6 +13,10 @@ import { ClusterConfig, CLUSTER_CONFIG, CLUSTER_DEFAULT_CONFIG } from "./Cluster
             },
             deps: [ClusterService],
             multi: true
+        },
+        {
+            token: CLUSTER_CONFIG,
+            value: CLUSTER_DEFAULT_CONFIG
         }
 
     ]
