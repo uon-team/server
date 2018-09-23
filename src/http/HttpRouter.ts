@@ -137,7 +137,7 @@ export interface HttpRoute {
 /**
  * Implementation of Router for http
  */
-export class HttpRouter extends Router<HttpController, HttpRoute> {
+export class HttpRouter extends Router<HttpController, HttpRoute> { 
 
     constructor() {
         super(HttpController, HttpRoute, [MatchMethodFunc]);

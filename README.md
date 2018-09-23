@@ -19,6 +19,14 @@ Please note that there are many unfinished features, use at your own risk.
 
 The http module is responsible for handling http requests and spawning an HttpContext.
 
+
+### App-wide Providers vs Request-Scoped Providers
+
+Providers declared in @Module() decorator are availble throgh DI across the application instance. Request-scoped providers are declared with HttpModule.WithConfig() or with HTTP_CONFIG
+
+
+
+
 ### Routing
 Routing is done differently with @uon/server. The routes are defined as metadata on a class and it's methods using TypeScript decorators.
 
@@ -26,7 +34,7 @@ Here is an example of a simple router:
 
 ```typescript
 
-@HttpRouter({
+@HttpController({
     path: '/myapp'
 })
 export class MyAppController {
@@ -144,6 +152,64 @@ Only the http-01 challenge has been implemented. There are no plans to implement
  A generic storage adapter is provided (LetsEncryptFsStorageAdapter) using any FsAdapter as backend. Implementing a storage adapter for MongoDB or Redis can be done by implementing the interface LetsEncryptStorageAdapter.
 
 
+## Websocket Module
+
+An simple implementation of Websocket.
+
+
+### Upgrading connections
+Connection upgrades are done by using an HttpRoute with the method "UPGRADE". An HttpUpgradeContext is made available as a provider when an upgrade request comes in.
+
+#### Example
+```typescript
+import { HttpController, HttpRoute, HttpUpgradeContext, WsService } from '@uon/server';
+
+@HttpController({
+    path: '/api'
+})
+export class MyController {
+
+
+    constructor(private upgradeContext: HttpUpgradeContext, 
+        private wsService: WsService) {
+
+    }
+
+    @HttpRoute({
+        method: 'UPGRADE',
+        path: '/ws-upgrade-path'
+    })
+    doUpgrade() {
+
+        // check auth or any other condition for upgrade
+        return auth.getAuth(...)
+            .then((res) => {
+
+                if(!res) {
+                    // reject the upgrade
+                    return this.wsService.reject(this.upgradeContext, 403, '')
+                }
+
+                // continue with the upgrade 
+                return this.wsService.upgrade(this.upgradeContext)
+                    .then((ws) => {
+
+                        ws.on('message', (data) => {
+                            console.log('received message', data);
+                        });
+
+                        ws.on('close', (code) => {
+                            console.log('connection closed', code);
+                        });
+
+                        ws.send('From server, with love.');
+
+                    });
+            });
+    }
+}
+
+```
 
 ## File System Module
 

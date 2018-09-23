@@ -22,16 +22,22 @@ export interface ClusterConfig {
      */
     concurrency?: number;
 
+    /**
+     * Whether or not to relaunch workers when they exit
+     */
+    relaunchOnExit?: boolean;
+
 
     /**
      * The adapter for storing locks
      */
-    lockAdapter: LockAdapter;
+    lockAdapter?: LockAdapter;
 
 }
 
 export const CLUSTER_DEFAULT_CONFIG: ClusterConfig = {
     enabled: false,
     concurrency: 0,
+    relaunchOnExit: false,
     lockAdapter: new FileLockAdapter()
 }

@@ -14,12 +14,22 @@
         ws.addEventListener('open', () => {
 
             console.log('wrod!');
+
+            //ws.send('Hello from chrome!');
+
+
+            ws.addEventListener('message', (data) => {
+                console.log('word?', data);
+            })
+
+            //ws.
+
         });
 
         ws.addEventListener('close', () => {
 
             console.log('closed!');
-        })
+        });
 
     </script>
 </body>

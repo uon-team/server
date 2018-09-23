@@ -10,10 +10,16 @@ import { HttpCookies } from './transforms/HttpCookies';
 import { HttpEncoding } from './transforms/HttpEncoding';
 import { HttpRange } from './transforms/HttpRange';
 
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter, HttpController, HttpRoute } from './HttpRouter';
 
 import { ClusterModule } from '../cluster/ClusterModule';
 import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
+import { HttpResponse } from './HttpResponse';
+import { HttpError } from './HttpError';
+import { HttpRequest } from './HttpRequest';
+
+
+
 
 @Module({
     imports: [

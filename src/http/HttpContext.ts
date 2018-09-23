@@ -12,6 +12,7 @@ import { HttpController } from './HttpRouter';
 
 import { HttpResponse } from './HttpResponse';
 import { HttpRequest } from './HttpRequest';
+import { HttpUpgradeContext } from './HttpUpgradeContext';
 
 
 /**
@@ -97,10 +98,6 @@ export class HttpContext extends EventSource {
         }
         this._processing = true;
 
-        // if no matches to process, reject with 404
-        if(matches.length == 0) {
-            return Promise.reject(new HttpError(404));
-        }
 
         // we need a list of providers before we create an injector
         // start with this for a start
@@ -162,6 +159,7 @@ export class HttpContext extends EventSource {
                 // instanciate the controller
                 return injector.instanciateAsync(m.router.type)
                     .then((ctrl) => {
+
                         // call the method on the controller
                         return ctrl[method_key](m.params);
                     });
@@ -174,11 +172,19 @@ export class HttpContext extends EventSource {
         // return the promise chain
         return promise_chain
             .then(() => {
-
-                // if no response was sent from any of the matches, we got a 404
+    
+                // if no response was sent delegate the error to the 'error listeners'
                 if (!this.response.sent) {
+
+                    // might be an upgrade
+                    let upgrade: HttpUpgradeContext = this._injector.get(HttpUpgradeContext);
+                    if (upgrade) {
+                        return upgrade.abort(404, 'Not found');
+                    }
+
                     throw new HttpError(404);
                 }
+
 
             })
             .catch((err) => {
@@ -189,7 +195,7 @@ export class HttpContext extends EventSource {
                 return this.emit('error', this, error)
                     .then(() => {
 
-                        // that was the final chance to respond
+                        // that was the final chance to respond, delegating error to server
                         if (!this.response.sent) {
                             throw error;
                         }

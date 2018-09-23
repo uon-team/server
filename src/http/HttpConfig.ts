@@ -7,6 +7,7 @@ import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transf
 import { HttpCookies } from './transforms/HttpCookies';
 import { HttpAuthorization } from './transforms/HttpAuthorization';
 import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './transforms/HttpRange';
+import { HttpUpgradeContext } from './HttpUpgradeContext';
 
 
 // the unique http config token
@@ -106,6 +107,12 @@ export function GetHttpContextDefaultProviders() {
             value: <HttpRangeConfig>{
                 maxChunkSize: 10 * 1024 * 1024, // 10MB
             }
+        },
+
+        // upgrade context, in case user doesnt mark it as @Optional
+        {
+            token: HttpUpgradeContext,
+            value: null
         }
     ];
 

@@ -45,6 +45,17 @@ export interface HttpSSLProvider {
 }
 
 /**
+ * Override for handling request
+ */
+interface RequestOverrides {
+    method?: string;
+    providers?: Provider[];
+    context?: HttpContext;
+}
+
+const EMPTY_OBJECT = {};
+
+/**
  * 
  */
 @Injectable()
@@ -133,9 +144,9 @@ export class HttpServer extends EventSource {
     on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
 
 
-     /**
-     * Add an event listener that with be called when an connection upgrade request
-     */
+    /**
+    * Add an event listener that with be called when an connection upgrade request
+    */
     on(type: 'upgrade', callback: (context: HttpUpgradeContext) => any, priority?: number): void;
 
 
@@ -243,24 +254,22 @@ export class HttpServer extends EventSource {
      * @param req 
      * @param res 
      */
-    private handleRequest(req: IncomingMessage, res: ServerResponse) {
+    private handleRequest(req: IncomingMessage, res: ServerResponse, overrides: RequestOverrides = EMPTY_OBJECT) {
 
+
+        // the time the handling of the request started
         const current_time = Date.now();
+
+        //console.log((process.memoryUsage().heapUsed / (1024  * 1024)).toFixed(4) + 'mb');
 
         // shortcut to config
         const config = this.config;
 
-        // fetch the root http router
-        const router: HttpRouter = this.injector.get(HTTP_ROUTER);
-
-        // get matches
-        const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method });
-
 
         // create a new context
-        const http_context = new HttpContext({
+        const http_context = overrides.context || new HttpContext({
             injector: this.injector,
-            providers: this.config.providers,
+            providers: overrides.providers || this.config.providers,
             req: req,
             res: res
         });
@@ -275,6 +284,13 @@ export class HttpServer extends EventSource {
                 return;
             }
         }
+
+        // fetch the root http router
+        const router: HttpRouter = this.injector.get(HTTP_ROUTER);
+
+        // get matches
+        const matches = router.match(ParseUrl(req.url, false).pathname, { method: overrides.method || req.method });
+
 
         // emit the request event first
         return this.emit('request', http_context)
@@ -293,10 +309,17 @@ export class HttpServer extends EventSource {
                         // final chance was given, respond with whatever error we got
                         // this is to avoid having a dangling connection that will eventually timeout
                         if (!http_context.response.sent) {
-                            //console.error(ex)
-                            http_context.response.statusCode = ex.code || 500;
-                            return http_context.response.send(ex.body || ex.message);
-
+                           
+                            //
+                            if(http_context.response.valid) {
+                                http_context.response.statusCode = ex.code || 500;
+                                return http_context.response.send(ex.body || ex.message);
+                            }
+                            else {
+                                console.warn('Warning: Unhandled request error', ex);
+                                req.socket.destroy();
+                            }
+                            
                         }
 
                     });
@@ -314,13 +337,15 @@ export class HttpServer extends EventSource {
 
                     this.accessLog.log(
                         res.statusCode,
-                        req.method,
+                        overrides.method || req.method,
                         req.uri.path,
                         req.clientIp,
                         time_ms,
                         process.pid);
 
                 }
+
+                //console.log((process.memoryUsage().heapUsed / (1024  * 1024)).toFixed(4) + 'mb');
 
             });
 
@@ -367,21 +392,33 @@ export class HttpServer extends EventSource {
      */
     private handleConnectionUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
 
-
-        // fetch the upgrade http router
-        //const router: HttpRouterImpl = this.injector.get(HTTP_UPGRADE_ROUTER);
-        
-        // get matches
-        //const matches = router.match(ParseUrl(req.url, false).pathname, { method: 'UPGRADE' });
-
         // create a new context
-        const http_context = new HttpUpgradeContext({
+        const upgrade_context = new HttpUpgradeContext(req, head);
+
+        let providers: Provider[] = [
+            <Provider>{
+                token: HttpUpgradeContext,
+                value: upgrade_context
+            }
+        ].concat(this.config.providers);
+
+        let context = new HttpContext({
             injector: this.injector,
-            req: req,
-            head: head
+            providers,
+            req,
+            res: null
         });
 
-        this.emit('upgrade', http_context);
+        upgrade_context.setResponse(context.response);
+
+        /* let res = new ServerResponse(req);
+         res.assignSocket(req.socket);
+         */
+
+        return this.handleRequest(req, null, {
+            method: "UPGRADE",
+            context
+        });
 
     }
 

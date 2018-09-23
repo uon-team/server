@@ -19,6 +19,8 @@ export class HttpResponse {
         //"X-Powered-By": 'UON'
     };
 
+    private _overrideSent: boolean = false;
+
 
     /**
      * Creates a new server response wrapper
@@ -30,7 +32,9 @@ export class HttpResponse {
      * Whether the headers were sent
      */
     get sent() {
-        return this._response.headersSent || this._response.finished;
+        return this._response ?
+            this._response.headersSent || this._response.finished :
+            this._overrideSent;
     }
 
     /**
@@ -52,6 +56,15 @@ export class HttpResponse {
      */
     get headers() {
         return this._headers;
+    }
+
+    get valid() {
+        return this._response != null;
+    }
+
+
+    markAsSent() {
+        this._overrideSent = true;
     }
 
 
