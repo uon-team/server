@@ -9,6 +9,13 @@ import { resolveCname } from "dns";
 
 const EMPTY_OBJECT = {};
 
+export interface HttpUpgradeHandler {
+    protocol: string;
+    type: Type<any>;
+    accept(uc: HttpUpgradeContext): Promise<any>;
+}
+
+
 export class HttpUpgradeContext {
 
     readonly request: HttpRequest;
@@ -17,7 +24,7 @@ export class HttpUpgradeContext {
 
     private _res: HttpResponse;
 
-    constructor(req: IncomingMessage, readonly head: Buffer) {
+    constructor(req: IncomingMessage, readonly head: Buffer, private _handler: HttpUpgradeHandler) {
 
         this.request = new HttpRequest(req);
         this.socket = req.socket;
@@ -30,13 +37,16 @@ export class HttpUpgradeContext {
         this._res = res;
     }
 
-
-
-    accept() {
+    accept<T>(type: Type<T>): Promise<T> {
 
         this._res.markAsSent();
 
+        if(type !== this._handler.type) {
+            throw new Error(`Wrong type provided. Expected ${this._handler.type.name}, got ${type.name}`);
+        }
 
+        return this._handler.accept(this);
+    
     }
 
     abort(code: number, message: string, headers: OutgoingHttpHeaders = EMPTY_OBJECT) {
@@ -44,7 +54,6 @@ export class HttpUpgradeContext {
         this._res.markAsSent();
 
         const socket = this.socket;
-
 
         if (socket.writable) {
 

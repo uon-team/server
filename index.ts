@@ -15,9 +15,13 @@ export { HttpContext } from './src/http/HttpContext';
 export { HttpRequest } from './src/http/HttpRequest';
 export { HttpResponse } from './src/http/HttpResponse';
 export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
-
+export * from './src/http/HttpUpgradeContext';
 export * from './src/http/HttpRouter';
 export { HttpError } from './src/http/HttpError';
+
+// Ws exports
+export * from './src/ws/WsModule';
+export * from './src/ws/WebSocket';
 
 
 // Http transforms

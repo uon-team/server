@@ -78,7 +78,7 @@ export class WsContext extends EventSource {
     /**
      * On connection open
      */
-    on(type: 'connection', callback: (ws: WsContext) => any, priority?: number): void;
+    on(type: 'open', callback: (ws: WsContext) => any, priority?: number): void;
 
 
     /**
@@ -260,8 +260,11 @@ export class WsContext extends EventSource {
         // set state to opened
         this._state = WsContextState.Open;
 
-        // emit a connection event
-        this.emit('connection', this);
+        // emit a connection event on next tick
+        process.nextTick(() => {
+            this.emit('open', this);
+        });
+        
 
     }
 

@@ -162,7 +162,7 @@ Connection upgrades are done by using an HttpRoute with the method "UPGRADE". An
 
 #### Example
 ```typescript
-import { HttpController, HttpRoute, HttpUpgradeContext, WsService } from '@uon/server';
+import { HttpController, HttpRoute, HttpUpgradeContext, WebSocket } from '@uon/server';
 
 @HttpController({
     path: '/api'
@@ -170,8 +170,7 @@ import { HttpController, HttpRoute, HttpUpgradeContext, WsService } from '@uon/s
 export class MyController {
 
 
-    constructor(private upgradeContext: HttpUpgradeContext, 
-        private wsService: WsService) {
+    constructor(private upgradeContext: HttpUpgradeContext) {
 
     }
 
@@ -187,11 +186,11 @@ export class MyController {
 
                 if(!res) {
                     // reject the upgrade
-                    return this.wsService.reject(this.upgradeContext, 403, '')
+                    return this.upgradeContext.abort(403, 'You shall not pass.')
                 }
 
-                // continue with the upgrade 
-                return this.wsService.upgrade(this.upgradeContext)
+                // continue with the upgrade
+                return this.upgradeContext.accept(WebSocket)
                     .then((ws) => {
 
                         ws.on('message', (data) => {

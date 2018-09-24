@@ -7,7 +7,7 @@ import * as tls from 'tls';
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { HttpContext } from './HttpContext';
-import { HttpUpgradeContext } from './HttpUpgradeContext';
+import { HttpUpgradeContext, HttpUpgradeHandler } from './HttpUpgradeContext';
 import { HttpError } from './HttpError';
 import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpController, HttpRouter } from './HttpRouter';
 import { Log } from '../log/Log';
@@ -24,6 +24,12 @@ export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requ
  * SSL Certificate provider token
  */
 export const HTTP_SSL_PROVIDER = new InjectionToken<HttpSSLProvider>("Provider for SSL certificates");
+
+/**
+ * SSL Certificate provider token
+ */
+export const HTTP_UPGRADE_HANDLER = new InjectionToken<HttpUpgradeHandler>("Multi provider for upgrade handlers");
+
 
 
 /**
@@ -43,6 +49,7 @@ export interface HttpSSLProvider {
     getDefault(): Promise<{ key: any, cert: any }>;
 
 }
+
 
 /**
  * Override for handling request
@@ -309,9 +316,9 @@ export class HttpServer extends EventSource {
                         // final chance was given, respond with whatever error we got
                         // this is to avoid having a dangling connection that will eventually timeout
                         if (!http_context.response.sent) {
-                           
+
                             //
-                            if(http_context.response.valid) {
+                            if (http_context.response.valid) {
                                 http_context.response.statusCode = ex.code || 500;
                                 return http_context.response.send(ex.body || ex.message);
                             }
@@ -319,7 +326,7 @@ export class HttpServer extends EventSource {
                                 console.warn('Warning: Unhandled request error', ex);
                                 req.socket.destroy();
                             }
-                            
+
                         }
 
                     });
@@ -392,8 +399,25 @@ export class HttpServer extends EventSource {
      */
     private handleConnectionUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
 
+        const handlers: HttpUpgradeHandler[] = this.injector.get(HTTP_UPGRADE_HANDLER, []);
+        let handler: HttpUpgradeHandler;
+        let protocol = req.headers.upgrade.toLowerCase();
+
+        for (let i = 0; i < handlers.length; ++i) {
+            if (handlers[i].protocol === protocol) {
+                handler = handlers[i];
+                break;
+            }
+        }
+
         // create a new context
-        const upgrade_context = new HttpUpgradeContext(req, head);
+        const upgrade_context = new HttpUpgradeContext(req, head, handler);
+
+        // no handler for upgrade request
+        if (!handler) {
+            return upgrade_context.abort(400, `No handler for ${protocol} upgrade`);
+        }
+
 
         let providers: Provider[] = [
             <Provider>{

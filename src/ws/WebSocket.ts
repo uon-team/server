@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 
 import { WsContext, WsContextState } from './WsContext';
 import { WEBSOCKET_GUID } from './WsUtils';
+import { HttpUpgradeHandler, HttpUpgradeContext } from '../http/HttpUpgradeContext';
 
 
 
@@ -30,11 +31,15 @@ export class WebSocket extends WsContext {
 
     private _context: WsContext;
 
-    constructor(url: string, headers: { [k: string]: string } = {}) {
+    constructor(url?: string, headers: { [k: string]: string } = {}) {
         super();
 
 
-        this.connect(url, headers)
+        // constructed as a client
+        if(typeof url === 'string') {
+            this.connect(url, headers)
+        }
+        
     }
 
     get readyState() {
@@ -42,6 +47,11 @@ export class WebSocket extends WsContext {
     }
 
 
+    /**
+     * Connect to a ws server
+     * @param url 
+     * @param headers 
+     */
     private connect(url: string, headers: { [k: string]: string }) {
 
         const parsed_url = ParseUrl(url);
