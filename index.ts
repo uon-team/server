@@ -7,6 +7,10 @@ export * from './src/cluster/ClusterLifecycle';
 export * from './src/cluster/ClusterLock';
 export * from './src/cluster/adapters/FileLockAdapter';
 
+// Ws exports
+export * from './src/ws/WsModule';
+export * from './src/ws/WebSocket';
+
 // Http exports
 export { HttpModule } from './src/http/HttpModule';
 export { HttpServer, HTTP_ACCESS_LOG } from './src/http/HttpServer';
@@ -17,11 +21,7 @@ export { HttpResponse } from './src/http/HttpResponse';
 export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './src/http/HttpRequestBody';
 export * from './src/http/HttpUpgradeContext';
 export * from './src/http/HttpRouter';
-export { HttpError } from './src/http/HttpError';
-
-// Ws exports
-export * from './src/ws/WsModule';
-export * from './src/ws/WebSocket';
+export * from './src/http/HttpError';
 
 
 // Http transforms
