@@ -37,9 +37,12 @@ export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
 
         let fp = path.join(this._accounts, email + '.json');
 
-        return this.readJson(fp).then((account) => {
-            return account;
-        });
+        return this.readJson(fp)
+            .then((account) => {
+                return account;
+            }).catch((err) => {
+                return null;
+            });
 
     }
 
@@ -54,13 +57,17 @@ export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
 
         let fp = path.join(this._certificates, domain + '.json');
 
-        return this.readJson(fp).then((cert: Certificate) => {
+        return this.readJson(fp)
+            .then((cert: Certificate) => {
 
-            if (cert) {
-                cert.renewBy = new Date(cert.renewBy);
-            }
-            return cert;
-        });
+                if (cert) {
+                    cert.renewBy = new Date(cert.renewBy);
+                }
+                return cert;
+            })
+            .catch((err) => {
+                return null;
+            })
 
     }
 
@@ -75,9 +82,13 @@ export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
 
         let fp = path.join(this._challenges, token + '.json');
 
-        return this.readJson(fp).then((chal) => {
-            return chal;
-        });
+        return this.readJson(fp)
+            .then((chal) => {
+                return chal;
+            })
+            .catch((err) => {
+                return null;
+            });
     }
 
     saveChallenge(challenge: Challenge): Promise<Challenge> {
@@ -87,6 +98,7 @@ export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
     }
 
 
+    /*
     private createDirectories(baseDir: string) {
 
         this._accounts = path.join(baseDir, 'accounts');
@@ -107,7 +119,7 @@ export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
         }
 
 
-    }
+    }*/
 
     private readJson(filepath: string): Promise<any> {
 
