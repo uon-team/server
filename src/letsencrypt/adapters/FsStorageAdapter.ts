@@ -13,7 +13,7 @@ export interface LocalStorageAdapterOptions {
 
 /**
  * Storage adapter for storing Let's Encrypt accounts and certificates 
- * on the local hard disk. make sure the baseDir is not publicly accessible.
+ * on the target filesystem. make sure the base directory is not publicly accessible.
  */
 export class LetsEncryptFsStorageAdapter implements LetsEncryptStorageAdapter {
 

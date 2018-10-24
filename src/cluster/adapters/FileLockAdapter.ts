@@ -8,6 +8,8 @@ export class FileLockAdapter implements LockAdapter {
 
 
     private _locks: string[] = [];
+
+    
     constructor(private basePath: string = os.tmpdir()) {
 
     }
@@ -19,7 +21,6 @@ export class FileLockAdapter implements LockAdapter {
         }
 
         let file = this.formatFilename(token);
-
 
         try {
             fs.mkdirSync(file);

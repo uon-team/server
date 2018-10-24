@@ -151,7 +151,7 @@ export class HttpRange extends HttpTransform {
                 });
 
                 // set input stream with range
-                response.setInputSteam(src_adapter.createReadStream(src_path, this.range));
+                response.stream(src_adapter.createReadStream(src_path, this.range));
     
             });
 

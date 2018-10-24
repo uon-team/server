@@ -9,15 +9,17 @@
     "outDir": "dist/",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
+
   },
   "lib": [ "es2015" ],
-  "files": [
-    "index.ts"
+  "include": [
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "typings/global",
     "typings/global.d.ts"
   ],
-  "compileOnSave": true
+  "compileOnSave": true,
+
 }

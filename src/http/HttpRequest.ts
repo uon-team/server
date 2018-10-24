@@ -66,6 +66,10 @@ export class HttpRequest {
         return this._request.headers;
     }
 
+
+    /**
+     * Get the incoming request body as a readable stream
+     */
     toReadableStream() {
         return this._request;
     }

@@ -14,7 +14,6 @@ export const HTTP_REQUEST_BODY_CONFIG = new InjectionToken<HttpRequestBodyConfig
 const NO_BODY_METHODS = ['DELETE', 'OPTIONS', 'GET', 'HEAD', 'COPY', 'PURGE', 'UNLOCK'];
 
 
-
 /**
  * Configuration options for the request body
  */

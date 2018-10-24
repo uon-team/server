@@ -68,14 +68,15 @@ export class LetsEncryptService {
                 return this.cluster.lock(lock_name)
                     .then((res) => {
 
-                        return this.getCertificates().then(() => {
+                        return this.getCertificates()
+                            .then(() => {
 
-                            // lock owner needs to unlock
-                            if (res) {
-                                this.cluster.unlock(lock_name);
-                            }
+                                // lock owner needs to unlock
+                                if (res) {
+                                    this.cluster.unlock(lock_name);
+                                }
 
-                        });
+                            });
                     })
 
             });

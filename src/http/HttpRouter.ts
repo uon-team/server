@@ -82,7 +82,9 @@ export interface HttpController {
      */
     priority?: number;
 
-
+    /**
+     * Reference to the decorated type, this is set automatically
+     */
     type?: Type<any>
 }
 

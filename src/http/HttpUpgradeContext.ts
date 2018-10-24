@@ -2,7 +2,6 @@ import { HttpRequest } from "./HttpRequest";
 import { IncomingMessage, OutgoingHttpHeaders, STATUS_CODES } from "http";
 import { Socket } from "net";
 import { RouteMatch, Injector, Provider, Type } from "@uon/core";
-import { GetHttpContextDefaultProviders } from "./HttpConfig";
 import { HttpResponse } from "./HttpResponse";
 import { resolveCname } from "dns";
 
@@ -16,6 +15,9 @@ export interface HttpUpgradeHandler {
 }
 
 
+/**
+ * Interface for accepting and rejecting upgrade requests
+ */
 export class HttpUpgradeContext {
 
     readonly request: HttpRequest;
@@ -32,23 +34,34 @@ export class HttpUpgradeContext {
 
     }
 
-
     setResponse(res: HttpResponse) {
         this._res = res;
     }
 
+    /**
+     * Accept the upgrade request thru the handler
+     * @param type 
+     */
     accept<T>(type: Type<T>): Promise<T> {
 
+        // mark as response as set to avoid closing down the connection
         this._res.markAsSent();
 
-        if(type !== this._handler.type) {
+        if (type !== this._handler.type) {
             throw new Error(`Wrong type provided. Expected ${this._handler.type.name}, got ${type.name}`);
         }
 
         return this._handler.accept(this);
-    
+
     }
 
+
+    /**
+     * Abort the upgrade process and terminate the connection
+     * @param code 
+     * @param message 
+     * @param headers 
+     */
     abort(code: number, message: string, headers: OutgoingHttpHeaders = EMPTY_OBJECT) {
 
         this._res.markAsSent();

@@ -34,7 +34,6 @@ export class WebSocket extends WsContext {
     constructor(url?: string, headers: { [k: string]: string } = {}) {
         super();
 
-
         // constructed as a client
         if(typeof url === 'string') {
             this.connect(url, headers)

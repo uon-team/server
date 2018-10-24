@@ -15,9 +15,7 @@ export class HttpResponse {
     private _inputStream: Stream;
 
     private _statusCode: number = 200;
-    private _headers: OutgoingHttpHeaders = {
-        //"X-Powered-By": 'UON'
-    };
+    private _headers: OutgoingHttpHeaders = {};
 
     private _overrideSent: boolean = false;
 
@@ -104,7 +102,6 @@ export class HttpResponse {
         this._response.end(data);
     }
 
-
     /**
      * Sends a redirect header
      * @param location The url to redirect to
@@ -120,29 +117,13 @@ export class HttpResponse {
 
     }
 
-
     /**
      * Sets the data input stream
-     * @param readable 
-     */
-    setInputSteam(readable: Stream) {
-
-        /*if(this._inputStream && this._inputStream !== readable) {
-            this._inputStream.close()
-        }*/
-
-        this._inputStream = readable;
-    }
-
-
-    /**
-     * Alias for setInputStream
      * @param readable 
      */
     stream(readable: Stream) {
         this._inputStream = readable;
     }
-
 
     /**
      * Use a transform in the pipeline

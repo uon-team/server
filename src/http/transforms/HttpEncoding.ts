@@ -123,6 +123,7 @@ export class HttpEncoding extends HttpTransform {
                     // compute file name for the gz file
                     const dest_path = `${this._options.srcPath}.gz.${Math.floor(srcStats.modified.getTime() / 1000)}`;
 
+                    // the gzip file stats
                     let final_stats: FileStat;
 
                     // get stats for the gz file
@@ -155,7 +156,6 @@ export class HttpEncoding extends HttpTransform {
                                                 resolve(dest_adapter.createReadStream(dest_path))
                                             });
 
-
                                     })
                                     .on('error', (err) => {
                                         reject(err);
@@ -165,17 +165,20 @@ export class HttpEncoding extends HttpTransform {
                         })
                         .then((stream) => {
 
-                            // all done, set headers and input stream
-                            response.setHeader('Content-Encoding', 'gzip');
-                            response.setHeader('Content-Length', final_stats.size);
-                            response.setInputSteam(stream);
+                            // all done, set headers
+                            response.assignHeaders({
+                                'Content-Encoding': 'gzip',
+                                'Content-Length': final_stats.size
+                            });
+    
+                            // finally set input stream
+                            response.stream(stream);
+
                         });
 
                 });
 
         }
-
-
 
     }
 

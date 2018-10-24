@@ -17,12 +17,10 @@ export class ClusterService {
     private _instanceId: string;
     private _workers: cluster.Worker[];
 
-
     constructor(@Inject(CLUSTER_CONFIG) private config: ClusterConfig,
         private injector: Injector) {
 
         this._instanceId = crypto.randomBytes(16).toString('base64');
-
     }
 
     /**
@@ -31,6 +29,7 @@ export class ClusterService {
     start() {
 
         return Promise.resolve()
+            // init master and fork
             .then(() => {
 
                 // get master prefork work
@@ -55,6 +54,7 @@ export class ClusterService {
                 }
 
             })
+            // run worker initialization
             .then(() => {
 
                 // workers needs initialization too you know
@@ -64,13 +64,13 @@ export class ClusterService {
                         .then(() => {
 
                         });
-
                 }
 
             })
+            // setup termination behavior
             .then(() => {
 
-                let exit = this.stop.bind(this);
+                let exit = this.onStop.bind(this);
 
                 process.on('SIGINT', exit);
                 process.on('SIGTERM', exit);
@@ -78,32 +78,74 @@ export class ClusterService {
                 process.on('uncaughtException', (ex) => {
 
                     console.warn('Uncaught Exception:', ex);
-                    this.stop();
+                    this.onStop();
                 });
 
                 process.on('unhandledRejection', (ex) => {
 
                     console.warn('Unhandled Promise Rejection:', ex);
                     console.warn('NOTE: PLEASE HANDLE YOUR PROMISE REJECTIONS. !!!TERMINATING!!!');
-                    this.stop();
+                    this.onStop();
                 });
 
             });
 
     }
 
-    stop() {
+    /**
+     * Aquire a lock
+     * @param token 
+     * @param duration 
+     */
+    lock(token: string, duration: number = 0): Promise<boolean> {
+        return this.config.lockAdapter.lock(token, duration);
+    }
+
+    /**
+     * Discard a lock
+     * @param token 
+     */
+    unlock(token: string) {
+        return this.config.lockAdapter.unlock(token);
+    }
+
+
+    /**
+     * Called when worker exits, handles relauch. !master only!
+     * @param worker 
+     * @param code 
+     * @param signal 
+     */
+    private onWorkerExit(worker: cluster.Worker, code: number, signal: string) {
+
+        let index = this._workers.indexOf(worker);
+
+        if (this.config.relaunchOnExit) {
+            this._workers[index] = null;
+            this._workers[index] = this.createWorker();
+        }
+        else {
+            this._workers.splice(index, 1);
+        }
+
+
+
+    }
+
+    /**
+     * Stops all worker and master processes
+     */
+    private onStop() {
 
         return this.config.lockAdapter.clear()
             .then(() => {
-
 
                 let token = cluster.isMaster ? CLUSTER_MASTER_EXIT : CLUSTER_WORKER_EXIT;
 
                 return this.sequence(this.injector.get(token, []))
                     // handle exit for single instance, ie. execute worker exit handlers
                     .then(() => {
-                        if(cluster.isMaster && !this.config.enabled) {
+                        if (cluster.isMaster && !this.config.enabled) {
                             return this.sequence(this.injector.get(CLUSTER_WORKER_EXIT, []))
                         }
                     })
@@ -117,40 +159,10 @@ export class ClusterService {
             })
     }
 
-    lock(token: string, duration: number = 0): Promise<boolean> {
-        return this.config.lockAdapter.lock(token, duration);
-    }
-
-    unlock(token: string) {
-        return this.config.lockAdapter.unlock(token);
-    }
-
 
     /**
-     * Called when worker exits, handles relauch. master only
-     * @param worker 
-     * @param code 
-     * @param signal 
+     * Fork to a new worker !master only!
      */
-    private onWorkerExit(worker: cluster.Worker, code: number, signal: string) {
-        
-        
-        let index = this._workers.indexOf(worker);
-
-        if(this.config.relaunchOnExit) {
-            this._workers[index] = null;
-            this._workers[index] = this.createWorker();
-        }
-        else {
-            this._workers.splice(index, 1);
-        }
-      
-
-       
-    }
-
-
-
     private createWorker(): cluster.Worker {
 
         let worker = cluster.fork();
@@ -160,6 +172,10 @@ export class ClusterService {
     }
 
 
+    /**
+     * resolve promises sequentially
+     * @param tasks 
+     */
     private sequence(tasks: any[]) {
 
         let promise_chain = Promise.resolve();

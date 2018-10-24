@@ -7,7 +7,7 @@ import { TLSSocket } from 'tls';
 import { ReadStream } from 'fs';
 
 import { HttpError } from './HttpError';
-import { GetHttpContextDefaultProviders } from './HttpConfig';
+import { DEFAULT_CONTEXT_PROVIDERS } from './HttpConfig';
 import { HttpController } from './HttpRouter';
 
 import { HttpResponse } from './HttpResponse';
@@ -119,7 +119,7 @@ export class HttpContext extends EventSource {
         // get all providers
 
         // append all extra providers
-        providers = providers.concat(GetHttpContextDefaultProviders(), this._providers);
+        providers = providers.concat(DEFAULT_CONTEXT_PROVIDERS as Provider[], this._providers);
 
         // create the injector
         this._injector = Injector.Create(providers, this._root);

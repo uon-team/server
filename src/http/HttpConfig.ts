@@ -55,69 +55,61 @@ export const HTTP_CONFIG_DEFAULTS: HttpConfig = {
 
 
 /**
- * Get the default provider list for the Http context injector
- * @private
- * @param context 
+ * The default provider list for the HttpContext injector
  */
-export function GetHttpContextDefaultProviders() {
+export const DEFAULT_CONTEXT_PROVIDERS = Object.freeze(<Provider[]>[
 
-    let providers: Provider[] = [
-
-        // request body support
-        HttpRequestBody,
-        HttpRequestBodyBufferFactory,
-        {
-            token: HTTP_REQUEST_BODY_CONFIG,
-            value: <HttpRequestBodyConfig>{
-                maxLength: 1 * 1024 * 1024, // 1MB
-                accept: ['*/*']
-            }
-        },
-
-        // cookies support
-        HttpCookies,
-
-        // http cache service
-        HttpCache,
-        {
-            token: HTTP_CACHE_CONFIG,
-            value: <HttpCacheConfig>{
-                etagStorage: {},
-                expiresDelay: 60 * 60 * 1000
-            }
-        },
-
-        // auth support
-        HttpAuthorization,
-
-        // encoding support
-        HttpEncoding,
-        {
-            token: HTTP_ENCODING_CONFIG,
-            value: <HttpEncodingConfig>{
-                extensions: ['js', 'css'],
-                storageAdapter: null
-            }
-        },
-
-        // range support
-        HttpRange,
-        {
-            token: HTTP_RANGE_CONFIG,
-            value: <HttpRangeConfig>{
-                maxChunkSize: 10 * 1024 * 1024, // 10MB
-            }
-        },
-
-        // upgrade context, in case user doesnt mark it as @Optional
-        {
-            token: HttpUpgradeContext,
-            value: null
+    // request body support
+    HttpRequestBody,
+    HttpRequestBodyBufferFactory,
+    {
+        token: HTTP_REQUEST_BODY_CONFIG,
+        value: <HttpRequestBodyConfig>{
+            maxLength: 1 * 1024 * 1024, // 1MB
+            accept: ['*/*']
         }
-    ];
+    },
 
+    // cookies support
+    HttpCookies,
 
-    return providers;
+    // http cache service
+    HttpCache,
+    {
+        token: HTTP_CACHE_CONFIG,
+        value: <HttpCacheConfig>{
+            etagStorage: {},
+            expiresDelay: 60 * 60 * 1000
+        }
+    },
 
-}
+    // auth support
+    HttpAuthorization,
+
+    // encoding support
+    HttpEncoding,
+    {
+        token: HTTP_ENCODING_CONFIG,
+        value: <HttpEncodingConfig>{
+            extensions: ['js', 'css'],
+            storageAdapter: null
+        }
+    },
+
+    // range support
+    HttpRange,
+    {
+        token: HTTP_RANGE_CONFIG,
+        value: <HttpRangeConfig>{
+            maxChunkSize: 10 * 1024 * 1024, // 10MB
+        }
+    },
+
+    // upgrade context, in case user doesnt mark it as @Optional
+    {
+        token: HttpUpgradeContext,
+        value: null
+    }
+]);
+
 

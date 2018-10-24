@@ -4,6 +4,9 @@ import { Injectable, Inject, Optional, EventSource, Injector, ModuleRef, Router,
 import { Server, IncomingMessage, ServerResponse } from 'http';
 import * as https from 'https';
 import * as tls from 'tls';
+import { Socket } from 'net';
+import { parse as ParseUrl } from 'url';
+
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { HttpContext } from './HttpContext';
@@ -11,9 +14,6 @@ import { HttpUpgradeContext, HttpUpgradeHandler } from './HttpUpgradeContext';
 import { HttpError } from './HttpError';
 import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpController, HttpRouter } from './HttpRouter';
 import { Log } from '../log/Log';
-import { Socket } from 'net';
-import { parse as ParseUrl } from 'url';
-
 
 /**
  * Access log provider token
@@ -67,7 +67,6 @@ const EMPTY_OBJECT = {};
  */
 @Injectable()
 export class HttpServer extends EventSource {
-
 
     private _started: boolean;
 
