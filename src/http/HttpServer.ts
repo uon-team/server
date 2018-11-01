@@ -1,6 +1,6 @@
 
 
-import { Injectable, Inject, Optional, EventSource, Injector, ModuleRef, Router, RouteMatch, Provider, InjectionToken } from '@uon/core';
+import { Injectable, Inject, Optional, EventSource, Injector, Provider, InjectionToken } from '@uon/core';
 import { Server, IncomingMessage, ServerResponse } from 'http';
 import * as https from 'https';
 import * as tls from 'tls';
@@ -12,8 +12,12 @@ import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { HttpContext } from './HttpContext';
 import { HttpUpgradeContext, HttpUpgradeHandler } from './HttpUpgradeContext';
 import { HttpError } from './HttpError';
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpController, HttpRouter } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, MatchMethodFunc } from './HttpRouter';
 import { Log } from '../log/Log';
+import { Router } from '@uon/router';
+
+
+
 
 /**
  * Access log provider token
@@ -62,10 +66,12 @@ interface RequestOverrides {
 
 const EMPTY_OBJECT = {};
 
+const ROUTER_MATCH_FUNCS = [MatchMethodFunc];
+
 /**
  * 
  */
-@Injectable()
+//@Injectable()
 export class HttpServer extends EventSource {
 
     private _started: boolean;
@@ -266,11 +272,8 @@ export class HttpServer extends EventSource {
         // the time the handling of the request started
         const current_time = Date.now();
 
-        //console.log((process.memoryUsage().heapUsed / (1024  * 1024)).toFixed(4) + 'mb');
-
         // shortcut to config
         const config = this.config;
-
 
         // create a new context
         const http_context = overrides.context || new HttpContext({
@@ -292,11 +295,10 @@ export class HttpServer extends EventSource {
         }
 
         // fetch the root http router
-        const router: HttpRouter = this.injector.get(HTTP_ROUTER);
+        const router: Router = this.injector.get(HTTP_ROUTER);
 
         // get matches
-        const matches = router.match(ParseUrl(req.url, false).pathname, { method: overrides.method || req.method });
-
+        const matches = router.match(ParseUrl(req.url, false).pathname, { method: overrides.method || req.method }, ROUTER_MATCH_FUNCS);
 
         // emit the request event first
         return this.emit('request', http_context)
@@ -363,10 +365,10 @@ export class HttpServer extends EventSource {
     private handleHttpsRedirect(req: IncomingMessage, res: ServerResponse) {
 
         // fetch the redirect http router
-        const router: HttpRouter = this.injector.get(HTTP_REDIRECT_ROUTER);
+        const router: Router = this.injector.get(HTTP_REDIRECT_ROUTER);
 
         // get matches
-        const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method });
+        const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method }, ROUTER_MATCH_FUNCS);
 
         // create a new context
         const http_context = new HttpContext({

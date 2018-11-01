@@ -1,16 +1,12 @@
 
-import * as path from 'path';
 import { parse as ParseUrl } from 'url';
 import * as http from 'http';
 import * as https from 'https';
 import * as net from 'net';
-import * as tls from 'tls';
 import * as crypto from 'crypto';
 
 import { WsContext, WsContextState } from './WsContext';
 import { WEBSOCKET_GUID } from './WsUtils';
-import { HttpUpgradeHandler, HttpUpgradeContext } from '../http/HttpUpgradeContext';
-
 
 
 const SUPPORTED_PROTOCOLS = ['wss:', 'ws:'];

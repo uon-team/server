@@ -1,12 +1,9 @@
 
-import * as os from 'os';
 import * as https from 'https';
-import * as child_process from 'child_process';
 import * as crypto from 'crypto';
 import { URL } from 'url';
 
 import { ObjectUtils } from '@uon/core';
-import { LetsEncryptConfig } from './LetsEncryptConfig';
 import { Account, Certificate, Challenge } from './Models';
 import { GetModulus, DER2PEM, UrlBase64Encode, Base64Encode, ParseHeaderLinks } from './Utils';
 import { IncomingHttpHeaders } from 'http';

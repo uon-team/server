@@ -1,19 +1,19 @@
-import { HttpController, HttpRoute } from '../http/HttpRouter';
+import { HttpRoute } from '../http/HttpRouter';
 import { HttpRequest } from '../http/HttpRequest';
 import { HttpResponse } from '../http/HttpResponse';
 import { LetsEncryptService } from './LetsEncryptService';
 import { LE_CONFIG, LetsEncryptConfig } from './LetsEncryptConfig';
 import { Inject } from '@uon/core';
+import { RouteMatch, Controller } from '@uon/router';
 import { HttpError } from '../http/HttpError';
 
 
-@HttpController({
-    path: '/.well-known/acme-challenge'
-})
+@Controller()
 export class LetsEncryptController {
 
     constructor(private request: HttpRequest,
         private response: HttpResponse,
+        private route: RouteMatch,
         @Inject(LE_CONFIG) private config: LetsEncryptConfig) {
 
     }
@@ -22,9 +22,9 @@ export class LetsEncryptController {
         method: 'GET',
         path: '/:token'
     })
-    handleChallenge(params: { token: string }) {
+    handleChallenge() {
 
-        return this.config.storageAdapter.getChallenge(params.token)
+        return this.config.storageAdapter.getChallenge(this.route.params.token)
             .then((c) => {
 
                 if (!c) {

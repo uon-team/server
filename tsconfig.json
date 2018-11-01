@@ -20,6 +20,6 @@
     "typings/global",
     "typings/global.d.ts"
   ],
-  "compileOnSave": true,
+  "compileOnSave": true
 
 }

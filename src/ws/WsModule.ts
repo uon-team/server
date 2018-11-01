@@ -1,4 +1,4 @@
-import { Module, Application } from "@uon/core";
+import { Module } from "@uon/core";
 import { ClusterModule } from "../cluster/ClusterModule";
 import { HTTP_UPGRADE_HANDLER } from "../http/HttpServer";
 import { HttpUpgradeHandler, HttpUpgradeContext } from "../http/HttpUpgradeContext";

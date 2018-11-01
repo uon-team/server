@@ -1,10 +1,8 @@
 import { HttpRequest } from "./HttpRequest";
 import { IncomingMessage, OutgoingHttpHeaders, STATUS_CODES } from "http";
 import { Socket } from "net";
-import { RouteMatch, Injector, Provider, Type } from "@uon/core";
+import { Injector, Provider, Type } from "@uon/core";
 import { HttpResponse } from "./HttpResponse";
-import { resolveCname } from "dns";
-
 
 const EMPTY_OBJECT = {};
 

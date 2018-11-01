@@ -1,5 +1,3 @@
-import { HttpRequest } from "../http/HttpRequest";
-import { HttpUpgradeContext } from "../http/HttpUpgradeContext";
 import { EventSource } from "@uon/core";
 import { createHash } from "crypto";
 import { Socket } from "net";

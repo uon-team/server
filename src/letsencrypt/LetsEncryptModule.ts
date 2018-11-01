@@ -1,5 +1,6 @@
 
 import { Module, ModuleWithProviders } from '@uon/core';
+import { Router } from '@uon/router';
 import { LetsEncryptConfig, LE_CONFIG } from './LetsEncryptConfig';
 import { LetsEncryptService } from './LetsEncryptService';
 
@@ -7,7 +8,8 @@ import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from '../cluster/ClusterLife
 import { ClusterModule } from '../cluster/ClusterModule';
 import { LetsEncryptController } from './LetsEncryptController';
 import { HTTP_SSL_PROVIDER, HttpSSLProvider } from '../http/HttpServer';
-import { HTTP_REDIRECT_ROUTER, HttpRouter } from '../http/HttpRouter';
+import { HTTP_REDIRECT_ROUTER } from '../http/HttpRouter';
+
 
 
 @Module({
@@ -25,8 +27,11 @@ import { HTTP_REDIRECT_ROUTER, HttpRouter } from '../http/HttpRouter';
         },
         {
             token: CLUSTER_WORKER_INIT,
-            factory: (router: HttpRouter) => {
-                router.add(LetsEncryptController);
+            factory: (router: Router) => {
+                router.add({
+                    path: '/.well-known/acme-challenge',
+                    controller: LetsEncryptController
+                });
             },
             deps: [HTTP_REDIRECT_ROUTER],
             multi: true

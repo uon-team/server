@@ -1,22 +1,13 @@
 
-import { Application, Module, ModuleWithProviders, ObjectUtils, APP_INITIALIZER } from '@uon/core';
+import { Application, Module, ModuleWithProviders, ObjectUtils } from '@uon/core';
+import { Router } from '@uon/router';
+
 import { HttpServer } from './HttpServer';
-import { HttpContext } from './HttpContext';
 import { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './HttpConfig';
-import { HttpRequestBody } from './HttpRequestBody';
-
-import { HttpCache } from './transforms/HttpCache';
-import { HttpCookies } from './transforms/HttpCookies';
-import { HttpEncoding } from './transforms/HttpEncoding';
-import { HttpRange } from './transforms/HttpRange';
-
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRouter, HttpController, HttpRoute } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER } from './HttpRouter';
 
 import { ClusterModule } from '../cluster/ClusterModule';
 import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
-import { HttpResponse } from './HttpResponse';
-import { HttpError } from './HttpError';
-import { HttpRequest } from './HttpRequest';
 
 
 
@@ -34,14 +25,14 @@ import { HttpRequest } from './HttpRequest';
         {
             token: HTTP_ROUTER,
             factory: (app: Application) => {
-                return HttpRouter.FromModuleRefs(app.modules);
+                return new Router()
             },
             deps: [Application]
 
         },
         {
             token: HTTP_REDIRECT_ROUTER,
-            value: new HttpRouter()
+            value: new Router()
         },
         {
             token: CLUSTER_WORKER_INIT,

@@ -1,14 +1,10 @@
-import { EventSource, ObjectUtils, ArrayUtils, Type, Router, RouteMatch, Injector, Provider, InjectionToken } from '@uon/core';
-
+import { EventSource, Type, Injector, Provider, InjectionToken } from '@uon/core';
+import { Router, RouteMatch } from '@uon/router';
 import { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from 'http';
 import { parse as UrlParse, Url } from 'url';
-import { parse as QueryParse } from 'querystring';
-import { TLSSocket } from 'tls';
-import { ReadStream } from 'fs';
 
 import { HttpError } from './HttpError';
 import { DEFAULT_CONTEXT_PROVIDERS } from './HttpConfig';
-import { HttpController } from './HttpRouter';
 
 import { HttpResponse } from './HttpResponse';
 import { HttpRequest } from './HttpRequest';
@@ -132,20 +128,13 @@ export class HttpContext extends EventSource {
         matches.forEach((m) => {
 
             // grab the function name to call on the controller
-            let method_key = m.route.metadata.key;
-
-            // params to array
-            const params: string[] = [];
-            for (let j = 0; j < m.route.keys.length; ++j) {
-                let k = m.route.keys[j].name;
-                params.push(m.params[k]);
-            }
-
-            // get the parent chain
-            let ctrls: Type<any>[] = [];
+            const method_key = m.handler.methodKey;
 
             // create an injector for the match
-            let injector = Injector.Create([], this._injector);
+            let injector = Injector.Create([{
+                token: RouteMatch,
+                value: m
+            }], this._injector);
 
 
             // call the handler in sequence
@@ -157,11 +146,11 @@ export class HttpContext extends EventSource {
                 }
 
                 // instanciate the controller
-                return injector.instanciateAsync(m.router.type)
+                return injector.instanciateAsync(m.route.controller)
                     .then((ctrl) => {
 
                         // call the method on the controller
-                        return ctrl[method_key](m.params);
+                        return ctrl[method_key]();
                     });
 
             });
@@ -172,7 +161,7 @@ export class HttpContext extends EventSource {
         // return the promise chain
         return promise_chain
             .then(() => {
-    
+
                 // if no response was sent delegate the error to the 'error listeners'
                 if (!this.response.sent) {
 

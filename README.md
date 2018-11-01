@@ -22,13 +22,13 @@ The http module is responsible for handling http requests and spawning an HttpCo
 
 ### App-wide Providers vs Request-Scoped Providers
 
-Providers declared in @Module() decorator are availble throgh DI across the application instance. Request-scoped providers are declared with HttpModule.WithConfig() or with HTTP_CONFIG
+Providers declared in @Module() decorator are availble through DI across the application instance. Request-scoped providers are declared with HttpModule.WithConfig() or with HTTP_CONFIG
 
 
 
 
 ### Routing
-Routing is done differently with @uon/server. The routes are defined as metadata on a class and it's methods using TypeScript decorators.
+In @uon/server, the routes are defined as metadata on a class and it's methods using TypeScript decorators.
 
 Here is an example of a simple router:
 
@@ -46,7 +46,7 @@ export class MyAppController {
     // called when url path is /myapp/static
     @HttpRoute({
         method: 'GET',
-        path: '/static'
+        path: '/say-hello'
     })
     myStaticPathRoute() {
         this.response.send('Hello World!');
@@ -135,6 +135,8 @@ import {
             tempDir: path.join(__dirname, '/temp'),
 
             // either "staging" or "production"
+            // make sure everything works before switching to "production"
+            // as rate-limiting will get you banned in no time
             environment: "staging"
          })
          ...
@@ -145,7 +147,7 @@ export class MyAppModule() {}
 ```
 
 ### Challenge types
-Only the http-01 challenge has been implemented. There are no plans to implement other challenge types.
+Only the http-01 challenge has been implemented. There are no immediate plans to implement other challenge types.
 
 ### Storage adapters
 
@@ -253,7 +255,7 @@ You can hook into the app's lifecycle with these multi-providers :
  - CLUSTER_MASTER_INIT ; Execute task on launch on the master process only
  - CLUSTER_WORKER_INIT ; Execute task on launch on the worker processes (on master if clustering is disabled)
  - CLUSTER_MASTER_EXIT ; Execute task when the application exits on master process
- - CLUSTER_WORKER_EXIT ; Execute task when the application exits on worker process
+ - CLUSTER_WORKER_EXIT ; Execute task when the application exits on worker process (on master if clustering is disabled)
 
 
 ## Logging
@@ -263,4 +265,8 @@ You can hook into the app's lifecycle with these multi-providers :
 
 ## Contributions
 
-You are welcome to contribute by filling issues, submitting pull requests or just sending a suggestion. Much love.
+You are welcome to contribute by filling issues or submitting pull requests. Much love.
+
+
+## Future Development
+ - Reverse-proxy module
