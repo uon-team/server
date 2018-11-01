@@ -28,22 +28,23 @@ Providers declared in @Module() decorator are availble through DI across the app
 
 
 ### Routing
-In @uon/server, the routes are defined as metadata on a class and it's methods using TypeScript decorators.
+Http routing is done with @uon/router and the http sub-module provides 2 routers: HTTP_ROUTER and HTTP_REDIRECT_ROUTER.
 
-Here is an example of a simple router:
+
+To declare routes you can do the following:
+
+First declare a controller with HttpRoute decorators on methods:
 
 ```typescript
 
-@HttpController({
-    path: '/myapp'
-})
+import { Controller } from '@uon/router';
+
+@Controller()
 export class MyAppController {
 
     // ctor with dependency injection 
     constructor(private response: HttpResponse) {}
 
-
-    // called when url path is /myapp/static
     @HttpRoute({
         method: 'GET',
         path: '/say-hello'
@@ -53,6 +54,26 @@ export class MyAppController {
     }
 
 }
+```
+ Second, declare a list of routes that will be used by the HttpServer:
+
+```typescript
+const routes: Routes = [
+    {
+        path:'/my-base-path',
+        controller: MyAppController
+    }
+];
+```
+Finally, import RouterModule like so, to bind routes to the correct router: 
+```typescript
+@Module({
+    imports: [
+        RouterModule.For(HTTP_ROUTER, routes)
+    ]
+})
+export class MyModule {}
+
 
 ```
 
@@ -166,9 +187,7 @@ Connection upgrades are done by using an HttpRoute with the method "UPGRADE". An
 ```typescript
 import { HttpController, HttpRoute, HttpUpgradeContext, WebSocket } from '@uon/server';
 
-@HttpController({
-    path: '/api'
-})
+@Controller()
 export class MyController {
 
 
@@ -177,7 +196,7 @@ export class MyController {
     }
 
     @HttpRoute({
-        method: 'UPGRADE',
+        method: 'UPGRADE', // special method for upgrade requests
         path: '/ws-upgrade-path'
     })
     doUpgrade() {
