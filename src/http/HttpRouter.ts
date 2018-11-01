@@ -1,6 +1,6 @@
 
 import { InjectionToken } from '@uon/core';
-import { Router, MakeRouteHandlerDecorator } from '@uon/router';
+import { Router, MakeRouteHandlerDecorator, RouteHandlerDecorator } from '@uon/router';
 
 
 export const HTTP_ROUTER = new InjectionToken<Router>("Default Http router");
