@@ -71,7 +71,7 @@ const ROUTER_MATCH_FUNCS = [MatchMethodFunc];
 /**
  * 
  */
-//@Injectable()
+@Injectable()
 export class HttpServer extends EventSource {
 
     private _started: boolean;

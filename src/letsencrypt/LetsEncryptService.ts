@@ -1,22 +1,21 @@
 
-import { Injectable, Inject, Optional } from '@uon/core';
+import { Injectable, Inject } from '@uon/core';
 
 import { LetsEncryptConfig, LE_CONFIG } from './LetsEncryptConfig';
 import { Certificate, Account } from './Models';
-import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
+import { IncomingMessage, ServerResponse, Server } from 'http';
 import { AcmeClient } from './AcmeClient';
 import { LetsEncryptStorageAdapter } from './StorageAdapter';
 import { GenerateRSA, GenerateCSR, Base64Encode } from './Utils';
-
-import { isMaster } from 'cluster';
 
 import * as _path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as tls from 'tls';
 
-import { HTTP_CONFIG, HttpConfig } from '../http/HttpConfig';
 import { ClusterService } from '../cluster/ClusterService';
+
+
 
 const ACME_PROD = 'https://acme-v01.api.letsencrypt.org';
 const ACME_STAGING = 'https://acme-staging.api.letsencrypt.org';
@@ -181,41 +180,6 @@ export class LetsEncryptService {
         return { email: email, pem: rsa.toString('utf8') };
     }
 
-    /**
-     * Handles challenge response over http
-     * @param req 
-     * @param res 
-     */
-    handleChallengeRequest(req: IncomingMessage, res: ServerResponse) {
-
-        if (req.url.indexOf('.well-known/acme-challenge/') == -1) {
-            res.writeHead(404);
-            res.end("Not Found");
-            return;
-        }
-
-        let parts = req.url.split('.well-known/acme-challenge/');
-        let token = parts[1];
-
-
-        console.log('LE asked challenge ' + token);
-
-
-        return this.config.storageAdapter.getChallenge(token)
-            .then((c) => {
-
-                if (!c) {
-                    res.writeHead(404);
-                    res.end("Not Found");
-                    return;
-                }
-
-                res.writeHead(200);
-                res.end(c.keyauth);
-
-            });
-    }
-
 
     private createCertificate(domain: string): Promise<Certificate> {
 
@@ -265,8 +229,8 @@ export class LetsEncryptService {
             })
             .then(() => {
 
-                // generate a new certificate
-                return this.generateCertificate(domain);
+                // generate a new key and CSR
+                return this.generateKeyAndCSR(domain);
 
             })
             .then((cert) => {
@@ -299,7 +263,7 @@ export class LetsEncryptService {
     }
 
 
-    private generateCertificate(domain: string): Certificate {
+    private generateKeyAndCSR(domain: string): Certificate {
 
         let outdir = this.config.tempDir
 
@@ -308,15 +272,15 @@ export class LetsEncryptService {
             fs.mkdirSync(outdir);
         }
 
-        var csr_path = _path.join(outdir, domain + '.csr');
-        var private_key_path = _path.join(outdir, domain + '.key');
+        // var csr_path = _path.join(outdir, domain + '.csr');
+        const private_key_path = _path.join(outdir, domain + '.key');
 
         // generate a new key and save it to tmp
-        let key = GenerateRSA(4096);
+        const key = GenerateRSA(4096);
         fs.writeFileSync(private_key_path, key);
 
         // generate signing request
-        let csr = GenerateCSR(private_key_path, domain);
+        const csr = GenerateCSR(private_key_path, domain);
 
         // we no longer need to keep the key on disk
         fs.unlinkSync(private_key_path);

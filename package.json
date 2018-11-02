@@ -1,6 +1,6 @@
 {
   "name": "@uon/server",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "An HTTP server application framework with Let's Encrypt integration.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
