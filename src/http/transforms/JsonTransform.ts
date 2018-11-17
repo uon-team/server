@@ -19,6 +19,13 @@ export interface JsonTransformConfig {
      * Whether to print json with tab spaces
      */
     pretty?: boolean;
+
+
+    /**
+     * Prefix the output with the well-known string ")]}',\n"
+     * to prevent XSSI attacks
+     */
+    prefixOutput?: boolean;
     
 }
 
@@ -46,6 +53,10 @@ export class JsonTransform extends HttpTransform {
 
             result = JSON.stringify(payload, null, this.config.pretty ? '\t' : null);
         }
+
+        if(this.config.prefixOutput) {
+            result = ")]}',\n" + result;
+        }
         
         // set content type to json
         response.setHeader('Content-Type', 'application/json');
@@ -57,7 +68,6 @@ export class JsonTransform extends HttpTransform {
         let readable = new Readable();
         readable.push(result);
         readable.push(null);
-
 
         // stream response
         response.stream(readable);
