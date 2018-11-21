@@ -5,23 +5,32 @@ import { Socket } from "net";
 
 
 
-
+/**
+ * The incoming request object
+ * 
+ */
 export class HttpRequest {
 
     private _uri: Url;
     private _clientIp: string;
+    private _secure: boolean;
 
     constructor(private _request: IncomingMessage) {
 
         this._uri = ParseUrl(_request);
-        this._clientIp = GetClientIp(_request);
+        this._clientIp = _request.socket.remoteAddress;
+        this._secure = _request.connection instanceof TLSSocket;
+
+
+        // TODO make this optional
+        this.parseForwardedHeaders();
     }
 
     /**
      * Whether the connection is secure or not (over https)
      */
     get secure(): boolean {
-        return (this._request.connection instanceof TLSSocket);
+        return this._secure;
     }
 
     /**
@@ -72,6 +81,28 @@ export class HttpRequest {
      */
     toReadableStream() {
         return this._request;
+    }
+
+
+    /**
+     * Parses the following headers :
+     *  - X-Real-IP
+     *  - X-Forwarded-Proto
+     */
+    private parseForwardedHeaders() {
+
+        let real_ip = this._request.headers['x-real-ip'] as string;
+        let real_proto = this._request.headers['x-forwarded-proto'] as string;
+
+        // check if x-real-ip is set
+        if(real_ip) {
+            this._clientIp = real_ip;
+        }
+
+        // check the original protocol for https
+        if(real_proto) {
+            this._secure = real_proto.indexOf('https') === 0;
+        }
     }
 
 

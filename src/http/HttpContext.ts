@@ -147,7 +147,7 @@ export class HttpContext extends EventSource {
 
                 // instanciate the controller
                 return injector.instanciateAsync(m.route.controller)
-                    .then((ctrl) => {
+                    .then((ctrl: any) => {
 
                         // call the method on the controller
                         return ctrl[method_key]();

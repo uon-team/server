@@ -87,7 +87,7 @@ export class HttpCookies extends HttpTransform {
      */
     setCookie(name: string, value: string, options?: CookieSetOptions) {
 
-        const opts = ObjectUtils.extend({}, DEFAULT_SET_COOKIE_OPTIONS, options);
+        const opts: CookieSetOptions = ObjectUtils.extend({}, DEFAULT_SET_COOKIE_OPTIONS, options);
         opts.secure = this.request.secure;
 
         try {
@@ -116,6 +116,11 @@ export class HttpCookies extends HttpTransform {
     }
 
 
+    /**
+     * HttpTransform implementation
+     * Sets the Set-Cookie header
+     * @param response 
+     */
     transform(response: HttpResponse) {
 
         let cs: string[] = [];
