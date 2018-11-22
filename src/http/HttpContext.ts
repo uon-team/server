@@ -1,5 +1,5 @@
 import { EventSource, Type, Injector, Provider, InjectionToken } from '@uon/core';
-import { Router, RouteMatch } from '@uon/router';
+import { Router, RouteMatch, ActivatedRoute, IRouteGuardService } from '@uon/router';
 import { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from 'http';
 import { parse as UrlParse, Url } from 'url';
 
@@ -112,8 +112,6 @@ export class HttpContext extends EventSource {
             },
         ];
 
-        // get all providers
-
         // append all extra providers
         providers = providers.concat(DEFAULT_CONTEXT_PROVIDERS as Provider[], this._providers);
 
@@ -123,18 +121,33 @@ export class HttpContext extends EventSource {
         // start a promise chain
         let promise_chain = Promise.resolve();
 
-
         // instanciate controllers
         matches.forEach((m) => {
 
             // grab the function name to call on the controller
             const method_key = m.handler.methodKey;
 
+            const ar = m.toActivatedRoute();
+            const passed = true;
+
             // create an injector for the match
             let injector = Injector.Create([{
-                token: RouteMatch,
-                value: m
-            }], this._injector);
+                token: ActivatedRoute,
+                value: ar
+            }].concat(m.guards as any), this._injector);
+
+            // check the guards
+            m.guards.forEach((g) => {
+
+                promise_chain = promise_chain.then(() => {
+                    let gs: IRouteGuardService = injector.get(g as any);
+
+                    return gs.checkGuard(ar);
+                }).then((guardResult) => {
+                    passed 
+                });
+
+            });
 
 
             // call the handler in sequence
@@ -146,7 +159,7 @@ export class HttpContext extends EventSource {
                 }
 
                 // instanciate the controller
-                return injector.instanciateAsync(m.route.controller)
+                return injector.instanciateAsync(m.controller)
                     .then((ctrl: any) => {
 
                         // call the method on the controller
@@ -193,6 +206,18 @@ export class HttpContext extends EventSource {
 
             });
 
+    }
+
+
+    private processRouteGuards() {
+
+        `    `
+
+
+    }
+
+    private processMatches() {
+        
     }
 
 

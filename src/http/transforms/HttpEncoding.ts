@@ -67,7 +67,8 @@ export class HttpEncoding extends HttpTransform {
     private _options: HttpEncodingConfigureOptions;
 
 
-    constructor(private request: HttpRequest, private response: HttpResponse,
+    constructor(private request: HttpRequest, 
+        private response: HttpResponse,
         @Inject(HTTP_ENCODING_CONFIG) private config: HttpEncodingConfig) {
 
         super();

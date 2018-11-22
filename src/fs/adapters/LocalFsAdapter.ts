@@ -1,7 +1,7 @@
 
 import * as _path from 'path';
 import * as fs from 'fs';
-import * as mime_types from 'mime-types';
+import { GetMimeType } from '../FsUtils';
 
 import { FsAdapter, FileStat } from '../FsAdapter';
 import { ReadStream } from 'fs';
@@ -139,8 +139,8 @@ export class LocalFsAdapter implements FsAdapter {
                     return reject(err);
                 }
 
-                let mime = mime_types.lookup(path);
-                let ext = mime ? mime_types.extension(mime as string) : _path.extname(path).substr(1);
+                let mime = GetMimeType(path);
+                let ext = _path.extname(path).substr(1);
 
                 resolve({
                     modified: stats.mtime,

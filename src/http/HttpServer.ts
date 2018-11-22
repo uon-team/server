@@ -268,7 +268,6 @@ export class HttpServer extends EventSource {
      */
     private handleRequest(req: IncomingMessage, res: ServerResponse, overrides: RequestOverrides = EMPTY_OBJECT) {
 
-
         // the time the handling of the request started
         const current_time = Date.now();
 
@@ -283,22 +282,15 @@ export class HttpServer extends EventSource {
             res: res
         });
 
-        // check if we need to force the domain
-        if (this.config.forceDomain) {
-
-            if (http_context.uri.hostname !== config.forceDomain) {
-                var new_url = http_context.uri.protocol + '//' + config.forceDomain + (http_context.uri.port ? ':' + http_context.uri.port : '') + req.url;
-                res.writeHead(301, { Location: new_url });
-                res.end();
-                return;
-            }
-        }
-
         // fetch the root http router
         const router: Router = this.injector.get(HTTP_ROUTER);
 
         // get matches
-        const matches = router.match(ParseUrl(req.url, false).pathname, { method: overrides.method || req.method }, ROUTER_MATCH_FUNCS);
+        const matches = router.match(
+            ParseUrl(req.url, false).pathname,
+            { method: overrides.method || req.method },
+            ROUTER_MATCH_FUNCS
+        );
 
         // emit the request event first
         return this.emit('request', http_context)
@@ -352,9 +344,6 @@ export class HttpServer extends EventSource {
                         process.pid);
 
                 }
-
-                //console.log((process.memoryUsage().heapUsed / (1024  * 1024)).toFixed(4) + 'mb');
-
             });
 
     }
@@ -387,8 +376,6 @@ export class HttpServer extends EventSource {
                 res.end();
 
             });
-
-
 
     }
 

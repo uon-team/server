@@ -1,13 +1,20 @@
 
 import { InjectionToken } from '@uon/core';
-import { Router, MakeRouteHandlerDecorator, RouteHandlerDecorator } from '@uon/router';
+import { Router, MakeRouteHandlerDecorator, RouteHandlerDecorator, RouteHandler, RouteHandlerData } from '@uon/router';
 
 
+/**
+ * The main Http router
+ */
 export const HTTP_ROUTER = new InjectionToken<Router>("Default Http router");
+
+/**
+ * Redirect router
+ */
 export const HTTP_REDIRECT_ROUTER = new InjectionToken<Router>("Http router to bypass https redirects")
 
 
-export interface HttpRoute {
+export interface HttpRoute extends RouteHandlerData {
 
     /**
      * an HTTP method, can be an array
@@ -18,6 +25,7 @@ export interface HttpRoute {
      * The path regexp to test
      */
     path: string;
+
 
 }
 

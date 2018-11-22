@@ -34,11 +34,6 @@ export interface HttpConfig {
     host?: string;
 
     /**
-     * if set, every request will be redirected to the specified domain, useful for forcing www prefix or the opposite
-     */
-    forceDomain?: string;
-
-    /**
      * a list of extra providers for the request-scoped injector
      */
     providers?: Provider[];

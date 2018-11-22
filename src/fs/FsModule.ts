@@ -1,5 +1,5 @@
 
-import { Module, ModuleWithProviders, APP_INITIALIZER, Provider } from '@uon/core';
+import { Module, ModuleWithProviders, Provider } from '@uon/core';
 import { FsConfig, FS_CONFIG } from './FsConfig';
 
 @Module({
