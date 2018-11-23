@@ -10,15 +10,10 @@ import { HttpTransform } from "./transforms/HttpTransform";
 export class HttpResponse {
 
     private _transforms: HttpTransform[] = [];
-    private _stack: (() => Promise<any>)[] = [];
-
     private _inputStream: Stream;
 
     private _statusCode: number = 200;
     private _headers: OutgoingHttpHeaders = {};
-
-    private _overrideSent: boolean = false;
-
 
     /**
      * Creates a new server response wrapper
@@ -30,9 +25,9 @@ export class HttpResponse {
      * Whether the headers were sent
      */
     get sent() {
-        return this._response ?
-            this._response.headersSent || this._response.finished :
-            this._overrideSent;
+        return this._response
+            ? this._response.headersSent || this._response.finished
+            : true;
     }
 
     /**
@@ -55,16 +50,6 @@ export class HttpResponse {
     get headers() {
         return this._headers;
     }
-
-    get valid() {
-        return this._response != null;
-    }
-
-
-    markAsSent() {
-        this._overrideSent = true;
-    }
-
 
     /**
      * Sets a header by name
@@ -130,93 +115,35 @@ export class HttpResponse {
      * @param transform 
      */
     use(...transforms: HttpTransform[]) {
-
-        transforms.forEach((transform) => {
-
-            this._transforms.push(transform);
-
-            let func = () => {
-
-                return new Promise((resolve, reject) => {
-
-                    if (this.sent) {
-                        return reject('sent');
-                    }
-
-                    resolve(transform.transform(this));
-                });
-
-            }
-
-            this._stack.push(func);
-
-        });
-
+        this._transforms.push(...transforms);
     }
 
 
     /**
      * Executes the pipeline until a response is sent
      */
-    finish() {
-
-        const consume_chain = (): Promise<any> => {
-            let func = this._stack.shift();
-            if (!func) return Promise.resolve();
-
-            return func().then(() => {
-                return consume_chain();
-            }).catch((err) => {
-                throw err;
-            });
-        }
-
-        return new Promise((resolve, reject) => {
+    async finish() {
 
 
-            consume_chain()
-                .then(() => {
-                    resolve();
-                })
-                .catch((err) => {
+        for(let i = 0; i < this._transforms.length; ++i) {
 
-                    if (err === 'sent') {
-                        return;
-                    }
-
-                    reject(err);
-
-                })
-                .then(() => {
-                    resolve();
-                });
-
-
-
-        }).then(() => {
-
-            if (this._inputStream) {
-                this._inputStream.pipe(this.toWritableStream());
+            if(this.sent) {
                 return;
             }
 
-        }).catch((err) => {
+            await this._transforms[i].transform(this);
 
-            throw err;
-        });
+        }
+
+        // finally send the response if an input stream is set
+        if (this._inputStream) {
+
+            this._response.writeHead(this._statusCode, this._headers);
+            this._inputStream.pipe(this._response);
+        }
+
 
     }
-
-    /**
-     * Returns a writable stream after sending the headers
-     */
-    toWritableStream(): Writable {
-
-        this._response.writeHead(this._statusCode, this._headers);
-        return this._response;
-    }
-
-
 
 
 }

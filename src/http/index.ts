@@ -2,11 +2,9 @@
 export { HttpModule } from './HttpModule';
 export { HttpServer, HTTP_ACCESS_LOG } from './HttpServer';
 export { HttpConfig, HTTP_CONFIG } from './HttpConfig';
-export { HttpContext } from './HttpContext';
-export { HttpRequest } from './HttpRequest';
+export { HttpContext, HttpUpgradeHandler, HTTP_UPGRADE_HANDLER } from './HttpContext';
+export { HttpRequest, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './HttpRequest';
 export { HttpResponse } from './HttpResponse';
-export { HttpRequestBody, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './HttpRequestBody';
-export * from './HttpUpgradeContext';
 export * from './HttpRouter';
 export * from './HttpError';
 

@@ -8,7 +8,7 @@ import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from '../cluster/ClusterLife
 import { ClusterModule } from '../cluster/ClusterModule';
 import { LetsEncryptController } from './LetsEncryptController';
 import { HTTP_SSL_PROVIDER, HttpSSLProvider } from '../http/HttpServer';
-import { HTTP_REDIRECT_ROUTER } from '../http/HttpRouter';
+import { HTTP_REDIRECT_ROUTER, HttpRoute } from '../http/HttpRouter';
 
 
 
@@ -27,7 +27,7 @@ import { HTTP_REDIRECT_ROUTER } from '../http/HttpRouter';
         },
         {
             token: CLUSTER_WORKER_INIT,
-            factory: (router: Router) => {
+            factory: (router: Router<HttpRoute>) => {
                 router.add({
                     path: '/.well-known/acme-challenge',
                     controller: LetsEncryptController

@@ -1,20 +1,29 @@
-import { EventSource, Type, Injector, Provider, InjectionToken } from '@uon/core';
-import { Router, RouteMatch, ActivatedRoute, IRouteGuardService } from '@uon/router';
-import { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from 'http';
+import { EventSource, Type, Injector, Provider, InjectionToken, GetTypeMetadata } from '@uon/core';
+import { Router, RouteMatch, ActivatedRoute, IRouteGuardService, Controller, RouteGuard } from '@uon/router';
+import { IncomingMessage, ServerResponse, OutgoingHttpHeaders, STATUS_CODES } from 'http';
 import { parse as UrlParse, Url } from 'url';
 
 import { HttpError } from './HttpError';
 import { DEFAULT_CONTEXT_PROVIDERS } from './HttpConfig';
 
 import { HttpResponse } from './HttpResponse';
-import { HttpRequest } from './HttpRequest';
-import { HttpUpgradeContext } from './HttpUpgradeContext';
-
+import { HttpRequest, HTTP_REQUEST_BODY_CONFIG } from './HttpRequest';
+import { Socket } from 'net';
 
 /**
- * Injection for initializing the context prior to execution
+ * Multi provider token for upgrade handlers
  */
-export const HTTP_CONTEXT_INITIALIZER = new InjectionToken<any[]>("Http Context Initializers");
+export const HTTP_UPGRADE_HANDLER = new InjectionToken<HttpUpgradeHandler<any>>("Multi provider for upgrade handlers");
+
+/**
+ * Declares a handler for http upgrades
+ */
+export interface HttpUpgradeHandler<T> {
+    protocol: string;
+    type: Type<T>;
+    accept(uc: HttpContext, headers: OutgoingHttpHeaders): Promise<T>;
+}
+
 
 /**
  * Parameters for HttpContext constructor
@@ -32,6 +41,10 @@ export interface HttpContextOptions {
 
     // a list of providers for the request-scoped injector
     providers: Provider[];
+
+    // optional head buffer used in upgrade
+    head?: Buffer;
+
 }
 
 /**
@@ -39,11 +52,12 @@ export interface HttpContextOptions {
  * as the root injector for the routing and instanciating of the controllers 
  *
  */
-export class HttpContext extends EventSource {
+export class HttpContext {
 
     readonly request: HttpRequest;
     readonly response: HttpResponse;
     readonly uri: Url;
+    readonly head: Buffer;
 
     private _root: Injector;
     private _injector: Injector;
@@ -58,35 +72,19 @@ export class HttpContext extends EventSource {
      */
     constructor(options: HttpContextOptions) {
 
-        super();
-
         this._root = options.injector;
         this._providers = options.providers;
 
         this.request = new HttpRequest(options.req);
         this.response = new HttpResponse(options.res);
 
+        this.head = options.head;
     }
-
-    /**
-     * Adds an event listener to be called before an error is sent,
-     * this can be used to intercept errors and handle them gracefully
-     */
-    on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
-
-
-    /**
-     * generic
-     */
-    on(type: string, callback: any, priority: number = 100): void {
-        return super.on(type, callback, priority);
-    }
-
 
     /**
      * Process the matching routes
      */
-    process(matches: RouteMatch[]) {
+    async process(match: RouteMatch) {
 
         // fool guard
         if (this._processing) {
@@ -94,6 +92,131 @@ export class HttpContext extends EventSource {
         }
         this._processing = true;
 
+        // 404 on no match
+        if (!match) {
+            throw new HttpError(404);
+        }
+
+        // create the injector
+        this._injector = Injector.Create(this.getProviderList(match), this._root);
+
+        // process route guards
+        const guard_pass = await this.processRouteGuards(match.guards);
+
+        // all guards must pass to continue
+        if (!guard_pass) {
+
+            // precondition failed
+            throw new HttpError(412);
+
+        }
+
+        // process match
+        return await this.processMatch(match);
+
+    }
+
+
+    /**
+     * Attempt a connection upgrade to a type declared in an HttpUpgradeHandler
+     * @param type 
+     */
+    async upgrade<T>(type: Type<T>, headers: OutgoingHttpHeaders = {}) {
+
+        if (!this.request.headers.upgrade) {
+            throw new Error('Cannot upgrade connection, no Upgrade header in request.');
+        }
+
+        // grab all defined upgrade handlers
+        const handlers: HttpUpgradeHandler<any>[] = this._root.get(HTTP_UPGRADE_HANDLER, []);
+
+        // get type upgrade type in the request header
+        const protocol = this.request.headers.upgrade.toLowerCase();
+
+        // select the corresponding upgrade handler
+        let handler: HttpUpgradeHandler<T>;
+        for (let i = 0; i < handlers.length; ++i) {
+            if (handlers[i].protocol === protocol) {
+                handler = handlers[i];
+                break;
+            }
+        }
+
+        if(!handler) {
+            throw new Error(`No handler for upgrade protocol ${protocol}`);
+        }
+
+        if (type !== handler.type) {
+            throw new Error(`Wrong type provided. Expected ${handler.type.name}, got ${type.name}`);
+        }
+
+        return handler.accept(this, headers);
+
+    }
+
+    /**
+     * Aborts the connection
+     * @param code 
+     * @param message 
+     */
+    async abort(code: number, message: string, headers: OutgoingHttpHeaders = {}) {
+
+        const socket = this.request.socket;
+
+        if (socket.writable) {
+
+            message = message || STATUS_CODES[code] || '';
+            headers = Object.assign({
+                'Connection': 'close',
+                'Content-type': 'text/plain',
+                'Content-Length': Buffer.byteLength(message)
+            }, headers);
+
+            let res = socket.write(
+                `HTTP/1.1 ${code} ${STATUS_CODES[code]}\r\n` +
+                Object.keys(headers).map(h => `${h}: ${headers[h]}`).join('\r\n') +
+                '\r\n\r\n' +
+                message
+            );
+
+        }
+
+        socket.destroy();
+    }
+
+    /**
+     * Call route guards sequentially, 
+     * rejects when the first guards returns false
+     * @param guards 
+     * @param injector 
+     */
+    private async processRouteGuards(guards: RouteGuard[]) {
+
+        const injector = this._injector;
+        const ac: ActivatedRoute = injector.get(ActivatedRoute);
+
+        // iterate over all guards
+        for (let i = 0; i < guards.length; ++i) {
+
+            let guard = await injector.instanciateAsync(guards[i]);
+            let result = await guard.checkGuard(ac);
+
+            if (!result) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private async processMatch(match: RouteMatch) {
+
+        const ctrl = await this._injector.instanciateAsync(match.controller)
+
+        return ctrl[match.handler.methodKey]();
+    }
+
+    private getProviderList(match: RouteMatch) {
 
         // we need a list of providers before we create an injector
         // start with this for a start
@@ -110,114 +233,24 @@ export class HttpContext extends EventSource {
                 token: HttpRequest,
                 value: this.request
             },
+
+            {
+                token: ActivatedRoute,
+                value: match.toActivatedRoute()
+            }
         ];
 
         // append all extra providers
         providers = providers.concat(DEFAULT_CONTEXT_PROVIDERS as Provider[], this._providers);
 
-        // create the injector
-        this._injector = Injector.Create(providers, this._root);
+        // get controller specific providers
+        let controller_meta: Controller = GetTypeMetadata(match.controller).filter(t => t instanceof Controller)[0];
+        if (controller_meta && controller_meta.providers) {
+            providers = providers.concat(controller_meta.providers);
+        }
 
-        // start a promise chain
-        let promise_chain = Promise.resolve();
+        return providers;
 
-        // instanciate controllers
-        matches.forEach((m) => {
-
-            // grab the function name to call on the controller
-            const method_key = m.handler.methodKey;
-
-            const ar = m.toActivatedRoute();
-            const passed = true;
-
-            // create an injector for the match
-            let injector = Injector.Create([{
-                token: ActivatedRoute,
-                value: ar
-            }].concat(m.guards as any), this._injector);
-
-            // check the guards
-            m.guards.forEach((g) => {
-
-                promise_chain = promise_chain.then(() => {
-                    let gs: IRouteGuardService = injector.get(g as any);
-
-                    return gs.checkGuard(ar);
-                }).then((guardResult) => {
-                    passed 
-                });
-
-            });
-
-
-            // call the handler in sequence
-            promise_chain = promise_chain.then(() => {
-
-                // if a response was sent ignore the rest
-                if (this.response.sent) {
-                    return;
-                }
-
-                // instanciate the controller
-                return injector.instanciateAsync(m.controller)
-                    .then((ctrl: any) => {
-
-                        // call the method on the controller
-                        return ctrl[method_key]();
-                    });
-
-            });
-
-
-        });
-
-        // return the promise chain
-        return promise_chain
-            .then(() => {
-
-                // if no response was sent delegate the error to the 'error listeners'
-                if (!this.response.sent) {
-
-                    // might be an upgrade
-                    let upgrade: HttpUpgradeContext = this._injector.get(HttpUpgradeContext);
-                    if (upgrade) {
-                        return upgrade.abort(404, 'Not found');
-                    }
-
-                    throw new HttpError(404);
-                }
-
-
-            })
-            .catch((err) => {
-
-                let error = err instanceof HttpError ?
-                    err : new HttpError(500, null, JSON.stringify(err.stack));
-
-                return this.emit('error', this, error)
-                    .then(() => {
-
-                        // that was the final chance to respond, delegating error to server
-                        if (!this.response.sent) {
-                            throw error;
-                        }
-
-                    });
-
-            });
-
-    }
-
-
-    private processRouteGuards() {
-
-        `    `
-
-
-    }
-
-    private processMatches() {
-        
     }
 
 

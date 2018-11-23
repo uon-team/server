@@ -1,10 +1,11 @@
 import { Module } from "@uon/core";
 import { ClusterModule } from "../cluster/ClusterModule";
-import { HTTP_UPGRADE_HANDLER } from "../http/HttpServer";
-import { HttpUpgradeHandler, HttpUpgradeContext } from "../http/HttpUpgradeContext";
 import { WEBSOCKET_GUID } from "./WsUtils";
 import { WebSocket } from "./WebSocket";
+import { OutgoingHttpHeaders } from "http";
 import * as crypto from 'crypto';
+import { HttpContext, HttpUpgradeHandler, HTTP_UPGRADE_HANDLER, HttpError } from "../http";
+
 
 
 @Module({
@@ -14,15 +15,11 @@ import * as crypto from 'crypto';
     providers: [
         {
             token: HTTP_UPGRADE_HANDLER,
-            factory: (): HttpUpgradeHandler => {
-
-                return {
-                    protocol: 'websocket',
-                    type: WebSocket,
-                    accept: UpgradeToWebSocket
-                };
+            value: <HttpUpgradeHandler<WebSocket>>{
+                protocol: 'websocket',
+                type: WebSocket,
+                accept: UpgradeToWebSocket
             },
-            deps: [],
             multi: true
         }
     ]
@@ -31,10 +28,10 @@ export class WsModule { }
 
 
 
-function UpgradeToWebSocket(context: HttpUpgradeContext): Promise<WebSocket> {
+async function UpgradeToWebSocket(context: HttpContext, extraHeaders: OutgoingHttpHeaders) {
 
     const req = context.request;
-    const socket = context.socket;
+    const socket = req.socket;
     const version = +req.headers['sec-websocket-version'];
     const upgrade = req.headers.upgrade.toLowerCase();
     const key = req.headers['sec-websocket-key'] as string;
@@ -45,15 +42,12 @@ function UpgradeToWebSocket(context: HttpUpgradeContext): Promise<WebSocket> {
         !key ||
         (version !== 8 && version !== 13)) {
 
-        return context.abort(400, "Bad Request").then(() => {
-            return null;
-        });
+        throw new HttpError(400);
     }
 
 
     if (!socket.readable || !socket.writable) {
-        socket.destroy();
-        return Promise.resolve(null);
+        throw new HttpError(400);
     }
 
     // create the response key
@@ -61,22 +55,25 @@ function UpgradeToWebSocket(context: HttpUpgradeContext): Promise<WebSocket> {
         .update(key + WEBSOCKET_GUID, 'ascii')
         .digest('base64');
 
-    const headers = [
-        'HTTP/1.1 101 Switching Protocols',
-        'Upgrade: websocket',
-        'Connection: Upgrade',
-        `Sec-WebSocket-Accept: ${res_key}`
-    ];
+    const headers = Object.assign(extraHeaders, {
+        'Upgrade': 'websocket',
+        'Connection': 'Upgrade',
+        'Sec-WebSocket-Accept': res_key
+    });
 
-    socket.write(headers.concat('\r\n').join('\r\n'));
+    let res = socket.write(
+        `HTTP/1.1 101 Switching Protocols\r\n` +
+        Object.keys(headers).map(h => `${h}: ${headers[h]}`).join('\r\n') + 
+        `\r\n\r\n`
+    );
 
     // create websocket
     let ws = new WebSocket();
 
     // let WsContext be a friend
-    (ws as any).assignSocket(context.socket, context.head);
+    (ws as any).assignSocket(socket, context.head);
 
-    return Promise.resolve(ws);
+    return ws;
 
 
 }

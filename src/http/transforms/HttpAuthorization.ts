@@ -54,10 +54,16 @@ export class HttpAuthorization extends HttpTransform {
         return this._scheme;
     }
 
+    /**
+     * The value after the scheme provided in the Authorization request header
+     */
     get token(): string {
         return this._token;
     }
 
+    /**
+     * Wheter the  Authorization request header was present and successfully parsed
+     */
     get valid(): boolean {
         return this._scheme !== undefined;
     }
@@ -77,7 +83,6 @@ export class HttpAuthorization extends HttpTransform {
      * @param response 
      */
     transform(response: HttpResponse) {
-
 
         response.statusCode = 401;
         response.setHeader('WWW-Authenticate', ``)

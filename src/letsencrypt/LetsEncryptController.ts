@@ -4,7 +4,7 @@ import { HttpResponse } from '../http/HttpResponse';
 import { LetsEncryptService } from './LetsEncryptService';
 import { LE_CONFIG, LetsEncryptConfig } from './LetsEncryptConfig';
 import { Inject } from '@uon/core';
-import { RouteMatch, Controller } from '@uon/router';
+import { RouteMatch, Controller, ActivatedRoute } from '@uon/router';
 import { HttpError } from '../http/HttpError';
 
 
@@ -13,7 +13,7 @@ export class LetsEncryptController {
 
     constructor(private request: HttpRequest,
         private response: HttpResponse,
-        private route: RouteMatch,
+        private route: ActivatedRoute,
         @Inject(LE_CONFIG) private config: LetsEncryptConfig) {
 
     }

@@ -10,9 +10,8 @@ import { parse as ParseUrl } from 'url';
 
 import { HttpConfig, HTTP_CONFIG } from './HttpConfig';
 import { HttpContext } from './HttpContext';
-import { HttpUpgradeContext, HttpUpgradeHandler } from './HttpUpgradeContext';
 import { HttpError } from './HttpError';
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, MatchMethodFunc } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, MatchMethodFunc, HttpRoute } from './HttpRouter';
 import { Log } from '../log/Log';
 import { Router } from '@uon/router';
 
@@ -28,12 +27,6 @@ export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requ
  * SSL Certificate provider token
  */
 export const HTTP_SSL_PROVIDER = new InjectionToken<HttpSSLProvider>("Provider for SSL certificates");
-
-/**
- * SSL Certificate provider token
- */
-export const HTTP_UPGRADE_HANDLER = new InjectionToken<HttpUpgradeHandler>("Multi provider for upgrade handlers");
-
 
 
 /**
@@ -156,11 +149,6 @@ export class HttpServer extends EventSource {
     on(type: 'error', callback: (context: HttpContext, error: HttpError) => any, priority?: number): void;
 
 
-    /**
-    * Add an event listener that with be called when an connection upgrade request
-    */
-    on(type: 'upgrade', callback: (context: HttpUpgradeContext) => any, priority?: number): void;
-
 
     /**
      * Adds an event listener
@@ -266,85 +254,78 @@ export class HttpServer extends EventSource {
      * @param req 
      * @param res 
      */
-    private handleRequest(req: IncomingMessage, res: ServerResponse, overrides: RequestOverrides = EMPTY_OBJECT) {
+    private async handleRequest(req: IncomingMessage, res: ServerResponse) {
 
         // the time the handling of the request started
         const current_time = Date.now();
 
-        // shortcut to config
-        const config = this.config;
+        // fetch the root http router
+        const router: Router<HttpRoute> = this.injector.get(HTTP_ROUTER);
 
         // create a new context
-        const http_context = overrides.context || new HttpContext({
+        const http_context = new HttpContext({
             injector: this.injector,
-            providers: overrides.providers || this.config.providers,
+            providers: this.config.providers,
             req: req,
             res: res
         });
 
-        // fetch the root http router
-        const router: Router = this.injector.get(HTTP_ROUTER);
+        const pathname = ParseUrl(req.url, false).pathname;
+        const method = req.method;
 
-        // get matches
-        const matches = router.match(
-            ParseUrl(req.url, false).pathname,
-            { method: overrides.method || req.method },
-            ROUTER_MATCH_FUNCS
-        );
+        // get match
+        const match = router.match(pathname, { method }, ROUTER_MATCH_FUNCS);
 
-        // emit the request event first
-        return this.emit('request', http_context)
-            .then(() => {
+        // try processing it
+        try {
 
-                // let the context process the request
-                return http_context.process(matches);
+            // emit the request event first
+            await this.emit('request', http_context);
 
-            })
-            .catch((ex: HttpError) => {
+            // process the match
+            await http_context.process(match);
 
-                // emit error event
-                return this.emit('error', http_context, ex)
-                    .then(() => {
+            // make sure a response was sent
+            if (!http_context.response.sent) {
+                console.error(`Controller ${match.controller.name}.${match.handler.methodKey} did not provide a response.`);
+                throw new HttpError(501);
+            }
+        }
+        catch (ex) {
 
-                        // final chance was given, respond with whatever error we got
-                        // this is to avoid having a dangling connection that will eventually timeout
-                        if (!http_context.response.sent) {
+            // must be HttpError from this point
+            let error = ex instanceof HttpError
+                ? ex
+                : new HttpError(500, null, JSON.stringify(ex.stack, null, 2));
 
-                            //
-                            if (http_context.response.valid) {
-                                http_context.response.statusCode = ex.code || 500;
-                                return http_context.response.send(ex.body || ex.message);
-                            }
-                            else {
-                                console.warn('Warning: Unhandled request error', ex);
-                                req.socket.destroy();
-                            }
+            // fire up the error event
+            await this.emit('error', http_context, error);
 
-                        }
+            // TODO handle error gracefully by matching error code with router?
 
-                    });
+            // send the error back
+            http_context.response.statusCode = error.code;
+            http_context.response.send(error.body || error.message);
 
+        }
 
-            }).then(() => {
+        // log
+        if (this.accessLog) {
 
-                // all done
-                if (this.accessLog) {
+            const res = http_context.response;
+            const req = http_context.request;
 
-                    const res = http_context.response;
-                    const req = http_context.request;
+            const time_ms = `${Date.now() - current_time}ms`;
 
-                    const time_ms = `${Date.now() - current_time}ms`;
+            this.accessLog.log(
+                res.statusCode,
+                req.method,
+                req.uri.path,
+                req.clientIp,
+                time_ms,
+                process.pid);
 
-                    this.accessLog.log(
-                        res.statusCode,
-                        overrides.method || req.method,
-                        req.uri.path,
-                        req.clientIp,
-                        time_ms,
-                        process.pid);
-
-                }
-            });
+        }
 
     }
 
@@ -354,7 +335,7 @@ export class HttpServer extends EventSource {
     private handleHttpsRedirect(req: IncomingMessage, res: ServerResponse) {
 
         // fetch the redirect http router
-        const router: Router = this.injector.get(HTTP_REDIRECT_ROUTER);
+        const router: Router<HttpRoute> = this.injector.get(HTTP_REDIRECT_ROUTER);
 
         // get matches
         const matches = router.match(ParseUrl(req.url, false).pathname, { method: req.method }, ROUTER_MATCH_FUNCS);
@@ -385,52 +366,38 @@ export class HttpServer extends EventSource {
      * @param socket 
      * @param head 
      */
-    private handleConnectionUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
+    private async handleConnectionUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
 
-        const handlers: HttpUpgradeHandler[] = this.injector.get(HTTP_UPGRADE_HANDLER, []);
-        let handler: HttpUpgradeHandler;
-        let protocol = req.headers.upgrade.toLowerCase();
+        // fetch the root http router
+        const router: Router<HttpRoute> = this.injector.get(HTTP_ROUTER);
 
-        for (let i = 0; i < handlers.length; ++i) {
-            if (handlers[i].protocol === protocol) {
-                handler = handlers[i];
-                break;
-            }
-        }
-
-        // create a new context
-        const upgrade_context = new HttpUpgradeContext(req, head, handler);
-
-        // no handler for upgrade request
-        if (!handler) {
-            return upgrade_context.abort(400, `No handler for ${protocol} upgrade`);
-        }
-
-
-        let providers: Provider[] = [
-            <Provider>{
-                token: HttpUpgradeContext,
-                value: upgrade_context
-            }
-        ].concat(this.config.providers);
-
-        let context = new HttpContext({
+        // create context
+        const context = new HttpContext({
             injector: this.injector,
-            providers,
+            providers: this.config.providers,
             req,
-            res: null
+            res: null,
+            head
         });
 
-        upgrade_context.setResponse(context.response);
+        const pathname = ParseUrl(req.url, false).pathname;
+        const method = "UPGRADE";
 
-        /* let res = new ServerResponse(req);
-         res.assignSocket(req.socket);
-         */
+        // get match
+        const match = router.match(pathname, { method }, ROUTER_MATCH_FUNCS);
 
-        return this.handleRequest(req, null, {
-            method: "UPGRADE",
-            context
-        });
+        try {
+            // process the match
+            await context.process(match);
+        }
+        catch (ex) {
+
+            let error = ex instanceof HttpError
+                ? ex
+                : new HttpError(500, null, JSON.stringify(ex.stack, null, 2));
+
+            context.abort(error.code, error.message || error.body);
+        }
 
     }
 

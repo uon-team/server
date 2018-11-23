@@ -6,14 +6,18 @@ import { Router, MakeRouteHandlerDecorator, RouteHandlerDecorator, RouteHandler,
 /**
  * The main Http router
  */
-export const HTTP_ROUTER = new InjectionToken<Router>("Default Http router");
+export const HTTP_ROUTER = new InjectionToken<Router<HttpRoute>>("Default Http router");
 
 /**
  * Redirect router
  */
-export const HTTP_REDIRECT_ROUTER = new InjectionToken<Router>("Http router to bypass https redirects")
+export const HTTP_REDIRECT_ROUTER = new InjectionToken<Router<HttpRoute>>("Http router to bypass https redirects")
 
 
+
+/**
+ * The http route decorator parameters
+ */
 export interface HttpRoute extends RouteHandlerData {
 
     /**
@@ -37,6 +41,11 @@ export const HttpRoute = MakeRouteHandlerDecorator<HttpRoute>("HttpRoute")
 
 
 
+/**
+ * the match function for http routes
+ * @param rh 
+ * @param d 
+ */
 export function MatchMethodFunc(rh: HttpRoute, d: any) {
 
     if (!rh.method)

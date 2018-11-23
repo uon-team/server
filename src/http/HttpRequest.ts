@@ -2,6 +2,30 @@ import { IncomingMessage, IncomingHttpHeaders } from "http";
 import { Url, parse as UrlParse } from "url";
 import { TLSSocket } from "tls";
 import { Socket } from "net";
+import { InjectionToken } from "@uon/core";
+import { HttpError } from "./HttpError";
+
+// Injection token for the requst body configuration
+export const HTTP_REQUEST_BODY_CONFIG = new InjectionToken<HttpRequestBodyConfig>("Http Request Body Config");
+
+
+/**
+ * Configuration options for the request body
+ */
+export interface HttpRequestBodyConfig {
+
+    /**
+     *  the maximum acceptable body size, in bytes
+     */
+    maxLength?: number;
+
+    /**
+     * Which content type (mime) is accepted 
+     */
+    accept?: string[];
+
+}
+
 
 
 
@@ -14,6 +38,8 @@ export class HttpRequest {
     private _uri: Url;
     private _clientIp: string;
     private _secure: boolean;
+
+    private _body: Promise<Buffer>;
 
     constructor(private _request: IncomingMessage) {
 
@@ -75,14 +101,75 @@ export class HttpRequest {
         return this._request.headers;
     }
 
-
     /**
-     * Get the incoming request body as a readable stream
+     * Get the request body
      */
-    toReadableStream() {
-        return this._request;
+    get body(): Promise<Buffer> {
+
+        if (!this._body) {
+            this.prepareBodyPromise();
+        }
+
+        return this._body;
     }
 
+    /**
+     * Validate
+     */
+    validate(config: HttpRequestBodyConfig) {
+        // we need a length from the headers
+
+        if (config.accept) {
+            if (config.accept.indexOf(this.headers['content-type']) === -1) {
+                throw new HttpError(400, null, `Content-Type must be set to (one of) ${config.accept}.`);
+            }
+        }
+
+        // check if content-length is bigger than the max allowed body size
+        if (config.maxLength) {
+
+            let header_length_str = this.headers['content-length'];
+            if (!header_length_str) {
+                throw new HttpError(411, null, `Content-Length headerfield must be set.`);
+            }
+
+            let header_length = parseInt(header_length_str);
+            if (header_length > config.maxLength) {
+                throw new HttpError(413, null `Content-Length of ${header_length} exceeds the limit of ${config.maxLength}.`);
+            }
+        }
+
+    }
+
+    /**
+     * Prepares the request body stream into a promise
+     */
+    private prepareBodyPromise() {
+
+        return new Promise<Buffer>((resolve, reject) => {
+
+            // start with an empty body
+            let body: any[] = [];
+
+            // append chunks to the body as they come in
+            this._request
+                .on('data', (chunk) => {
+
+                    body.push(chunk);
+
+                }).on('end', () => {
+
+                    resolve(Buffer.concat(body));
+
+                }).on('error', (err) => {
+
+                    reject(err);
+
+                });
+
+        });
+
+    }
 
     /**
      * Parses the following headers :
@@ -95,12 +182,13 @@ export class HttpRequest {
         let real_proto = this._request.headers['x-forwarded-proto'] as string;
 
         // check if x-real-ip is set
-        if(real_ip) {
+        if (real_ip) {
             this._clientIp = real_ip;
         }
 
         // check the original protocol for https
-        if(real_proto) {
+        if (real_proto) {
+            this._uri.protocol = real_proto;
             this._secure = real_proto.indexOf('https') === 0;
         }
     }
@@ -127,14 +215,4 @@ function ParseUrl(req: IncomingMessage) {
     uri.port = port;
 
     return uri;
-}
-
-/**
- * @private
- * @param req 
- */
-function GetClientIp(req: IncomingMessage): string {
-
-    let header: string = Array.isArray(req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'][0] : '';
-    return header.split(',')[0] || req.connection.remoteAddress;
 }

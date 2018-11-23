@@ -1,14 +1,11 @@
 import { InjectionToken, Provider } from '@uon/core';
-import { HttpRequestBodyConfig, HttpRequestBody, HttpRequestBodyBufferFactory, HTTP_REQUEST_BODY_CONFIG } from './HttpRequestBody';
-
 
 import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './transforms/HttpCache';
 import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transforms/HttpEncoding';
 import { HttpCookies } from './transforms/HttpCookies';
 import { HttpAuthorization } from './transforms/HttpAuthorization';
 import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './transforms/HttpRange';
-import { HttpUpgradeContext } from './HttpUpgradeContext';
-
+import { HTTP_REQUEST_BODY_CONFIG, HttpRequestBodyConfig } from './HttpRequest';
 
 // the unique http config token
 export const HTTP_CONFIG = new InjectionToken<HttpConfig>('HTTP Configuration');
@@ -55,8 +52,6 @@ export const HTTP_CONFIG_DEFAULTS: HttpConfig = {
 export const DEFAULT_CONTEXT_PROVIDERS = Object.freeze(<Provider[]>[
 
     // request body support
-    HttpRequestBody,
-    HttpRequestBodyBufferFactory,
     {
         token: HTTP_REQUEST_BODY_CONFIG,
         value: <HttpRequestBodyConfig>{
@@ -98,12 +93,6 @@ export const DEFAULT_CONTEXT_PROVIDERS = Object.freeze(<Provider[]>[
         value: <HttpRangeConfig>{
             maxChunkSize: 10 * 1024 * 1024, // 10MB
         }
-    },
-
-    // upgrade context, in case user doesnt mark it as @Optional
-    {
-        token: HttpUpgradeContext,
-        value: null
     }
 ]);
 

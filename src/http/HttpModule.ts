@@ -4,7 +4,7 @@ import { Router } from '@uon/router';
 
 import { HttpServer } from './HttpServer';
 import { HttpConfig, HTTP_CONFIG, HTTP_CONFIG_DEFAULTS } from './HttpConfig';
-import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER } from './HttpRouter';
+import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, HttpRoute } from './HttpRouter';
 
 import { ClusterModule } from '../cluster/ClusterModule';
 import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
@@ -25,14 +25,14 @@ import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
         {
             token: HTTP_ROUTER,
             factory: (app: Application) => {
-                return new Router()
+                return new Router(HttpRoute)
             },
             deps: [Application]
 
         },
         {
             token: HTTP_REDIRECT_ROUTER,
-            value: new Router()
+            value: new Router(HttpRoute)
         },
         {
             token: CLUSTER_WORKER_INIT,
