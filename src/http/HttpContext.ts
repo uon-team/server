@@ -104,8 +104,13 @@ export class HttpContext {
         // process route guards
         const guard_pass = await this.processRouteGuards(match.guards);
 
-        // all guards must pass to continue
-        if (!guard_pass) {
+        // Guards can send a response too you know
+        if (this.response.sent) {
+            // we all done here
+            return;
+        }
+        // all guards must pass to continue,
+        else if (!guard_pass) {
 
             // precondition failed
             throw new HttpError(412);

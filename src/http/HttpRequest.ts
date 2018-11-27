@@ -130,7 +130,7 @@ export class HttpRequest {
 
             let header_length_str = this.headers['content-length'];
             if (!header_length_str) {
-                throw new HttpError(411, new Error(`Content-Length headerfield must be set.`));
+                throw new HttpError(411, new Error(`Content-Length header field must be set.`));
             }
 
             let header_length = parseInt(header_length_str);

@@ -301,11 +301,10 @@ export class HttpServer extends EventSource {
             // fire up the error event
             await this.emit('error', http_context, error);
 
-            // TODO handle error gracefully by matching error code with router?
-
+            // process the error on the context 
             await http_context.processError(match, error);
 
-
+  
             // last chance was given to respond
             if (!http_context.response.sent) {
 

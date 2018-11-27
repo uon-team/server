@@ -1,4 +1,4 @@
-import { InjectionToken, Provider, Injector } from '@uon/core';
+import { InjectionToken, Provider, ProvideInjectable } from '@uon/core';
 
 import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './transforms/HttpCache';
 import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transforms/HttpEncoding';
@@ -97,13 +97,7 @@ export const DEFAULT_CONTEXT_PROVIDERS = Object.freeze(<Provider[]>[
     },
 
     // default error handler
-    {
-        token: HTTP_ERROR_HANDLER,
-        factory: (injector: Injector) => {
-            return injector.instanciate(DefaultHttpErrorHandler);
-        },
-        deps: [Injector]
-    }
+    ProvideInjectable(HTTP_ERROR_HANDLER, DefaultHttpErrorHandler)
 
 ]);
 

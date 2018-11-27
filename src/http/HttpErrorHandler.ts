@@ -13,23 +13,6 @@ export const HTTP_ERROR_HANDLER = new InjectionToken<HttpErrorHandler>("");
 
 
 /**
- * Utility for providing error handler
- * @param type 
- */
-export function ProvideHttpErrorHandler<T>(type: Type<T>): Provider {
-
-    return {
-        token: HTTP_ERROR_HANDLER,
-        factory: (injector: Injector) => {
-            return injector.instanciate(type);
-        },
-        deps: [Injector]
-    }
-
-}
-
-
-/**
  * Interface for error handlers
  */
 export interface HttpErrorHandler {

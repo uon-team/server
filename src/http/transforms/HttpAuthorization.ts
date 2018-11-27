@@ -4,11 +4,24 @@ import { HttpTransform } from './HttpTransform';
 import { HttpResponse } from '../HttpResponse';
 
 
-interface WWWAuthenticateResponse {
+interface WWWAuthenticateConfig {
     scheme: string;
     realm: string;
-    charset: string;
+    charset?: string;
 }
+
+
+const WWW_AUTH_CONFIG_DEFAULT: WWWAuthenticateConfig = {
+    scheme: "Basic",
+    realm: "Default",
+    charset: "utf-8"
+}
+
+export interface BasicCredentials {
+    username: string;
+    password: string;
+}
+
 
 // maybe not enforce this?
 const VALID_AUTH_TYPE = ["basic", "bearer", "digest"];
@@ -18,6 +31,8 @@ export class HttpAuthorization extends HttpTransform {
 
     private _scheme: string;
     private _token: string;
+
+    private _config: WWWAuthenticateConfig;
 
     constructor(private request: HttpRequest) {
 
@@ -30,7 +45,7 @@ export class HttpAuthorization extends HttpTransform {
             let start = str.indexOf(' ');
             let scheme = str.substr(0, start).toLowerCase();
 
-            if (VALID_AUTH_TYPE.indexOf(scheme)) {
+            if (VALID_AUTH_TYPE.indexOf(scheme) > -1) {
 
                 // assign scheme
                 this._scheme = scheme;
@@ -70,41 +85,51 @@ export class HttpAuthorization extends HttpTransform {
 
 
     /**
+     * Decode basic credentials from the provided token
+     * Will return null if the scheme was not set to Basic in 
+     * the authorization request header
+     */
+    getBasicCredentials(): BasicCredentials {
+
+        if (this._scheme !== 'basic') {
+            return null;
+        }
+
+        let decoded = Buffer.from(this._token, 'base64').toString('utf8');
+        let parts = decoded.split(':');
+
+        return {
+            username: parts[0],
+            password: parts[1]
+        };
+
+    }
+
+    /**
     * HttpTransform implemetation
     * @param response 
     */
-    configure(opts: any) {
+    configure(opts: WWWAuthenticateConfig) {
 
+        this._config = Object.assign({}, WWW_AUTH_CONFIG_DEFAULT, opts);
         return this;
     }
 
     /**
-     * HttpTransform implemetation
+     * HttpTransform implementation
      * @param response 
      */
     transform(response: HttpResponse) {
 
-        response.statusCode = 401;
-        response.setHeader('WWW-Authenticate', ``)
+        if (this._config) {
 
-        response.send(null);
+            response.statusCode = 401;
+            response.setHeader('WWW-Authenticate',
+                `${this._config.scheme} realm="${this._config.realm}", charset=${this._config.charset.toUpperCase()}`)
+
+        }
+
     }
 
-    /**
-     * Responds to the request with a 401(Unauthorized) and a WWW-Authenticate header
-     * @param scheme 
-     * @param realm 
-     * @param charset 
-     */
-    setAuth(scheme: string, realm: string, charset: string = "utf-8") {
-
-        scheme = scheme.charAt(0).toUpperCase() + scheme.substr(1).toLowerCase();
-
-        //this.context.responseStatusCode = 401;
-
-        /*  return this.context.send(null, {
-              "WWW-Authenticate": `${scheme} realm="${realm}", charset=${charset.toUpperCase()}`
-          });*/
-    }
 
 }
