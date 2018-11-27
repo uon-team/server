@@ -121,7 +121,7 @@ export class HttpRequest {
 
         if (config.accept) {
             if (config.accept.indexOf(this.headers['content-type']) === -1) {
-                throw new HttpError(400, null, `Content-Type must be set to (one of) ${config.accept}.`);
+                throw new HttpError(400, new Error(`Content-Type must be set to (one of) ${config.accept}.`));
             }
         }
 
@@ -130,12 +130,12 @@ export class HttpRequest {
 
             let header_length_str = this.headers['content-length'];
             if (!header_length_str) {
-                throw new HttpError(411, null, `Content-Length headerfield must be set.`);
+                throw new HttpError(411, new Error(`Content-Length headerfield must be set.`));
             }
 
             let header_length = parseInt(header_length_str);
             if (header_length > config.maxLength) {
-                throw new HttpError(413, null `Content-Length of ${header_length} exceeds the limit of ${config.maxLength}.`);
+                throw new HttpError(413, new Error(`Content-Length of ${header_length} exceeds the limit of ${config.maxLength}.`));
             }
         }
 

@@ -7,6 +7,7 @@ export { HttpRequest, HttpRequestBodyConfig, HTTP_REQUEST_BODY_CONFIG } from './
 export { HttpResponse } from './HttpResponse';
 export * from './HttpRouter';
 export * from './HttpError';
+export * from './HttpErrorHandler';
 
 
 // Http transforms

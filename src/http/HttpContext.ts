@@ -9,6 +9,7 @@ import { DEFAULT_CONTEXT_PROVIDERS } from './HttpConfig';
 import { HttpResponse } from './HttpResponse';
 import { HttpRequest, HTTP_REQUEST_BODY_CONFIG } from './HttpRequest';
 import { Socket } from 'net';
+import { HttpErrorHandler, HTTP_ERROR_HANDLER } from './HttpErrorHandler';
 
 /**
  * Multi provider token for upgrade handlers
@@ -92,13 +93,13 @@ export class HttpContext {
         }
         this._processing = true;
 
+        // create the injector
+        this._injector = Injector.Create(this.getProviderList(match), this._root);
+
         // 404 on no match
         if (!match) {
             throw new HttpError(404);
         }
-
-        // create the injector
-        this._injector = Injector.Create(this.getProviderList(match), this._root);
 
         // process route guards
         const guard_pass = await this.processRouteGuards(match.guards);
@@ -113,6 +114,27 @@ export class HttpContext {
 
         // process match
         return await this.processMatch(match);
+
+    }
+
+    /**
+     * Process an HttpError
+     * @param error 
+     */
+    async processError(match: RouteMatch, error: HttpError) {
+
+        // if the controller has a onHttpError method, we use that
+        if (match && match.controller.prototype.onHttpError) {
+
+            const ctrl = await this._injector.instanciateAsync(match.controller);
+
+            return await ctrl.onHttpError(error);
+        }
+
+        // else use the defined HttpErrorHandler
+        const handler: HttpErrorHandler = this._injector.get<HttpErrorHandler>(HTTP_ERROR_HANDLER);
+
+        await handler.send(error);
 
     }
 
@@ -142,7 +164,7 @@ export class HttpContext {
             }
         }
 
-        if(!handler) {
+        if (!handler) {
             throw new Error(`No handler for upgrade protocol ${protocol}`);
         }
 
@@ -209,13 +231,22 @@ export class HttpContext {
         return true;
     }
 
+    /**
+     * Instanciate the controller and call the handler method
+     * @param match 
+     */
     private async processMatch(match: RouteMatch) {
 
-        const ctrl = await this._injector.instanciateAsync(match.controller)
+        const ctrl = await this._injector.instanciateAsync(match.controller);
 
         return ctrl[match.handler.methodKey]();
     }
 
+
+    /**
+     * Get the provider list for this context's injector
+     * @param match 
+     */
     private getProviderList(match: RouteMatch) {
 
         // we need a list of providers before we create an injector
@@ -232,21 +263,26 @@ export class HttpContext {
             {
                 token: HttpRequest,
                 value: this.request
-            },
-
-            {
-                token: ActivatedRoute,
-                value: match.toActivatedRoute()
             }
         ];
+
 
         // append all extra providers
         providers = providers.concat(DEFAULT_CONTEXT_PROVIDERS as Provider[], this._providers);
 
-        // get controller specific providers
-        let controller_meta: Controller = GetTypeMetadata(match.controller).filter(t => t instanceof Controller)[0];
-        if (controller_meta && controller_meta.providers) {
-            providers = providers.concat(controller_meta.providers);
+
+        // append match providers
+        if (match) {
+            providers.push({
+                token: ActivatedRoute,
+                value: match.toActivatedRoute()
+            });
+
+            // get controller specific providers
+            let controller_meta: Controller = GetTypeMetadata(match.controller).filter(t => t instanceof Controller)[0];
+            if (controller_meta && controller_meta.providers) {
+                providers = providers.concat(controller_meta.providers);
+            }
         }
 
         return providers;

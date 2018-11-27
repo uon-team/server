@@ -1,6 +1,12 @@
 
 import { STATUS_CODES } from 'http'
+import { Controller } from '@uon/router';
 
+
+
+/**
+ * 
+ */
 export class HttpError extends Error {
 
     /**
@@ -9,14 +15,9 @@ export class HttpError extends Error {
     readonly code: number;
 
     /**
-     * The Http status code message, defaults to http.STATUS_CODES[code]
+     * The originating error
      */
-    readonly message: string;
-
-    /**
-     * The body sent to the client. For dev, this is usually the error stack
-     */
-    readonly body: string
+    readonly error: Error;
 
     /**
      * 
@@ -24,13 +25,23 @@ export class HttpError extends Error {
      * @param message 
      * @param body 
      */
-    constructor(code: number, message?: string, body?: string) {
+    constructor(code: number, originalError?: Error) {
 
-        let msg = message || STATUS_CODES[code];
-        super(`HttpError ${code} : ${msg}`);
+        let msg = STATUS_CODES[code];
+        super(originalError ? originalError.message : msg);
 
         this.code = code;
-        this.message = msg;
-        this.body = body;
+        this.error = originalError;
     }
 }
+
+
+/**
+ * Interface for Controllers for handling errors
+ */
+export interface OnHttpError {
+    onHttpError(err: HttpError): any;
+}
+
+
+

@@ -1,4 +1,4 @@
-import { InjectionToken, Provider } from '@uon/core';
+import { InjectionToken, Provider, Injector } from '@uon/core';
 
 import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './transforms/HttpCache';
 import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transforms/HttpEncoding';
@@ -6,6 +6,7 @@ import { HttpCookies } from './transforms/HttpCookies';
 import { HttpAuthorization } from './transforms/HttpAuthorization';
 import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './transforms/HttpRange';
 import { HTTP_REQUEST_BODY_CONFIG, HttpRequestBodyConfig } from './HttpRequest';
+import { HttpErrorHandler, HTTP_ERROR_HANDLER, DefaultHttpErrorHandler } from './HttpErrorHandler';
 
 // the unique http config token
 export const HTTP_CONFIG = new InjectionToken<HttpConfig>('HTTP Configuration');
@@ -93,7 +94,17 @@ export const DEFAULT_CONTEXT_PROVIDERS = Object.freeze(<Provider[]>[
         value: <HttpRangeConfig>{
             maxChunkSize: 10 * 1024 * 1024, // 10MB
         }
+    },
+
+    // default error handler
+    {
+        token: HTTP_ERROR_HANDLER,
+        factory: (injector: Injector) => {
+            return injector.instanciate(DefaultHttpErrorHandler);
+        },
+        deps: [Injector]
     }
+
 ]);
 
 

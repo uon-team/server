@@ -296,16 +296,26 @@ export class HttpServer extends EventSource {
             // must be HttpError from this point
             let error = ex instanceof HttpError
                 ? ex
-                : new HttpError(500, null, JSON.stringify(ex.stack, null, 2));
+                : new HttpError(500, ex);
 
             // fire up the error event
             await this.emit('error', http_context, error);
 
             // TODO handle error gracefully by matching error code with router?
 
-            // send the error back
-            http_context.response.statusCode = error.code;
-            http_context.response.send(error.body || error.message);
+            await http_context.processError(match, error);
+
+
+            // last chance was given to respond
+            if (!http_context.response.sent) {
+
+                // respond with a plain text error
+                http_context.response.statusCode = error.code;
+                http_context.response.send(error.message);
+                
+            }
+
+
 
         }
 
@@ -394,9 +404,9 @@ export class HttpServer extends EventSource {
 
             let error = ex instanceof HttpError
                 ? ex
-                : new HttpError(500, null, JSON.stringify(ex.stack, null, 2));
+                : new HttpError(500, ex);
 
-            context.abort(error.code, error.message || error.body);
+            context.abort(error.code, error.message);
         }
 
     }
