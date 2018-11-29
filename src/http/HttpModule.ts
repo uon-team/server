@@ -1,5 +1,5 @@
 
-import { Application, Module, ModuleWithProviders, ObjectUtils } from '@uon/core';
+import { Module, ModuleWithProviders, ObjectUtils } from '@uon/core';
 import { Router } from '@uon/router';
 
 import { HttpServer } from './HttpServer';
@@ -24,10 +24,10 @@ import { CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
         },
         {
             token: HTTP_ROUTER,
-            factory: (app: Application) => {
+            factory: () => {
                 return new Router(HttpRoute)
             },
-            deps: [Application]
+            deps: []
 
         },
         {
