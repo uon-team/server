@@ -26,69 +26,65 @@ export class ClusterService {
     /**
      * Start the cluster service
      */
-    start() {
+    async start() {
 
-        return Promise.resolve()
-            // init master and fork
-            .then(() => {
+        if (cluster.isMaster) {
 
-                // get master prefork work
-                if (cluster.isMaster) {
+            // get master prefork work
+            let master_tasks = this.injector.get(CLUSTER_MASTER_INIT, []);
 
-                    this._workers = [];
-                    return this.sequence(this.injector.get(CLUSTER_MASTER_INIT, []))
-                        .then(() => {
+            // wait for all tasks to complete
+            for (let i = 0; i < master_tasks.length; ++i) {
+                await master_tasks[i];
+            }
 
-                            if (this.config.enabled) {
+            // fork only if enabled in config
+            if (this.config.enabled) {
 
-                                let count = this.config.concurrency || os.cpus().length;
+                // get the number of processes to launch
+                let count = this.config.concurrency || os.cpus().length;
 
-                                // fork as many times as the user requested
-                                for (let i = 0; i < count; ++i) {
-                                    let worker = this.createWorker();
-                                    this._workers.push(worker);
-                                }
-                            }
-
-                        });
+                // fork as many times as the user requested
+                for (let i = 0; i < count; ++i) {
+                    let worker = this.createWorker();
+                    this._workers.push(worker);
                 }
+            }
 
-            })
-            // run worker initialization
-            .then(() => {
+        }
 
-                // workers needs initialization too you know
-                if (cluster.isWorker || !this.config.enabled) {
 
-                    return this.sequence(this.injector.get(CLUSTER_WORKER_INIT, []))
-                        .then(() => {
+        // workers needs initialization too you know
+        if (cluster.isWorker || !this.config.enabled) {
 
-                        });
-                }
+            let worker_tasks = this.injector.get(CLUSTER_WORKER_INIT, []);
 
-            })
-            // setup termination behavior
-            .then(() => {
+            // wait for all tasks to complete
+            for (let i = 0; i < worker_tasks.length; ++i) {
+                await worker_tasks[i];
+            }
 
-                let exit = this.onStop.bind(this);
+        }
 
-                process.on('SIGINT', exit);
-                process.on('SIGTERM', exit);
+        // setup process exit
+        const exit = this.onStop.bind(this);
+        process.on('SIGINT', exit);
+        process.on('SIGTERM', exit);
 
-                process.on('uncaughtException', (ex) => {
+        // we dont ignore uncaught exceptions
+        process.on('uncaughtException', (ex) => {
+            console.warn('Uncaught Exception:', ex);
+            this.onStop();
+        });
 
-                    console.warn('Uncaught Exception:', ex);
-                    this.onStop();
-                });
 
-                process.on('unhandledRejection', (ex) => {
+        // we dont support unhandled promise rejection
+        process.on('unhandledRejection', (ex) => {
 
-                    console.warn('Unhandled Promise Rejection:', ex);
-                    console.warn('NOTE: PLEASE HANDLE YOUR PROMISE REJECTIONS. !!!TERMINATING!!!');
-                    this.onStop();
-                });
-
-            });
+            console.warn('Unhandled Promise Rejection:', ex);
+            console.warn('NOTE: PLEASE HANDLE YOUR PROMISE REJECTIONS. !!!TERMINATING!!!');
+            this.onStop();
+        });
 
     }
 
@@ -128,35 +124,44 @@ export class ClusterService {
             this._workers.splice(index, 1);
         }
 
-
-
     }
 
     /**
      * Stops all worker and master processes
      */
-    private onStop() {
+    private async onStop() {
 
-        return this.config.lockAdapter.clear()
-            .then(() => {
+        // clear all locks
+        await this.config.lockAdapter.clear();
 
-                let token = cluster.isMaster ? CLUSTER_MASTER_EXIT : CLUSTER_WORKER_EXIT;
+        // master exit tasks
+        if (cluster.isMaster) {
 
-                return this.sequence(this.injector.get(token, []))
-                    // handle exit for single instance, ie. execute worker exit handlers
-                    .then(() => {
-                        if (cluster.isMaster && !this.config.enabled) {
-                            return this.sequence(this.injector.get(CLUSTER_WORKER_EXIT, []))
-                        }
-                    })
-                    // exit the process
-                    .then(() => {
+            // get master prefork work
+            let master_tasks = this.injector.get(CLUSTER_MASTER_EXIT, []);
 
-                        process.exit(0);
+            // wait for all tasks to complete
+            for (let i = 0; i < master_tasks.length; ++i) {
+                await master_tasks[i];
+            }
 
-                    });
+        }
 
-            })
+        // worker exit tasks
+        if (cluster.isWorker || !this.config.enabled) {
+
+            let worker_tasks = this.injector.get(CLUSTER_WORKER_EXIT, []);
+
+            // wait for all tasks to complete
+            for (let i = 0; i < worker_tasks.length; ++i) {
+                await worker_tasks[i];
+            }
+
+        }
+
+        // all done, exit the program
+        process.exit(0);
+
     }
 
 
@@ -169,31 +174,6 @@ export class ClusterService {
         worker.on('exit', this.onWorkerExit.bind(this, worker));
 
         return worker;
-    }
-
-
-    /**
-     * resolve promises sequentially
-     * @param tasks 
-     */
-    private sequence(tasks: any[]) {
-
-        let promise_chain = Promise.resolve();
-
-        // chain initializers if they return a promise
-        for (let i = 0; i < tasks.length; ++i) {
-
-            let initer = tasks[i];
-
-            if (initer instanceof Promise) {
-                promise_chain = promise_chain.then(() => {
-                    return initer;
-                });
-            }
-
-        }
-
-        return promise_chain;
     }
 
 }
