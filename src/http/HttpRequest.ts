@@ -107,7 +107,7 @@ export class HttpRequest {
     get body(): Promise<Buffer> {
 
         if (!this._body) {
-            this.prepareBodyPromise();
+            this._body = this.prepareBodyPromise();
         }
 
         return this._body;
