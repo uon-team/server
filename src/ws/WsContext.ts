@@ -94,13 +94,11 @@ export class WsContext extends EventSource {
      * @param code 
      * @param data 
      */
-    close(code: number = 1000, data?: string) {
+    async close(code: number = 1000, data?: string) {
 
-        return this._sender.close(code, data)
-            .then(() => {
+        await this._sender.close(code, data);
 
-                this._socket.destroy();
-            });
+        this._socket.destroy();
 
     }
 
@@ -110,7 +108,7 @@ export class WsContext extends EventSource {
      * @param data 
      * @param options 
      */
-    send(data: ArrayBuffer | Buffer | string, options: WsSendOptions = EMPTY_OBJECT) {
+    async send(data: ArrayBuffer | Buffer | string, options: WsSendOptions = EMPTY_OBJECT) {
 
 
         if (this._state !== WsContextState.Open) {
@@ -126,8 +124,7 @@ export class WsContext extends EventSource {
             fin: true
         }, options);
 
-
-        return this._sender.send(data || EMPTY_BUFFER, opts);
+        await this._sender.send(data || EMPTY_BUFFER, opts);
 
     }
 

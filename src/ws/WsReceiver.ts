@@ -3,7 +3,7 @@ import { IsValidStatusCode } from "./WsUtils";
 
 const ERROR_CODE = Symbol('status-code');
 const EMPTY_BUFFER = Buffer.alloc(0);
-
+const MAX_SAFE_INT_VALUE = Math.pow(2, 53) - 1;
 
 enum ReceiverState {
     ReadInfo,
@@ -257,7 +257,7 @@ export class WsReceiver extends Writable {
         // The maximum safe integer in JavaScript is 2^53 - 1. An error is returned
         // if payload length is greater than this number.
         //
-        if (num > Math.pow(2, 53 - 32) - 1) {
+        if (num > MAX_SAFE_INT_VALUE) {
             this._loop = false;
             return MakeError(
                 RangeError,

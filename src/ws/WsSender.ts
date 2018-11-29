@@ -59,7 +59,6 @@ export class WsSender {
 
         let opcode = options.binary ? 2 : 1;
         let rsv1 = !!options.compress;
-        data = this.formatBuffer(data);
 
         if (this._first) {
             this._first = false;
@@ -73,7 +72,7 @@ export class WsSender {
             this._first = true;
         }
 
-        let frame = MakeFrame(data, {
+        let frame = MakeFrame(EnsureBuffer(data), {
             fin: options.fin,
             rsv1: false,
             opcode,
@@ -86,22 +85,26 @@ export class WsSender {
 
     ping(data: Buffer | ArrayBuffer | string, options: WsSendOptions = EMPTY_OBJECT) {
 
-        this.sendFrame(MakeFrame(this.formatBuffer(data), {
+        this.sendFrame(
+            MakeFrame(EnsureBuffer(data), {
             fin: true,
             rsv1: false,
             opcode: 0x09,
             mask: options.mask
-        }));
+        })
+        );
     }
 
     pong(data: Buffer | ArrayBuffer | string, options: WsSendOptions = EMPTY_OBJECT) {
 
-        this.sendFrame(MakeFrame(this.formatBuffer(data), {
-            fin: true,
-            rsv1: false,
-            opcode: 0x0a,
-            mask: options.mask
-        }));
+        this.sendFrame(
+            MakeFrame(EnsureBuffer(data), {
+                fin: true,
+                rsv1: false,
+                opcode: 0x0a,
+                mask: options.mask
+            })
+        );
     }
 
 
@@ -116,22 +119,6 @@ export class WsSender {
         })
     }
 
-    private formatBuffer(data: Buffer | ArrayBuffer | string) {
-
-        if (!Buffer.isBuffer(data)) {
-            if (data instanceof ArrayBuffer) {
-                data = Buffer.from(data);
-            }
-            else if (ArrayBuffer.isView(data)) {
-                data = ViewToBuffer(data);
-            }
-            else {
-                data = Buffer.from(data, 'utf8');
-            }
-        }
-
-        return data;
-    }
 
 }
 
@@ -140,6 +127,23 @@ interface FrameOptions {
     opcode?: number;
     mask?: boolean;
     rsv1?: boolean;
+}
+
+function EnsureBuffer(data: Buffer | ArrayBuffer | string) {
+    let result: Buffer;
+    if (!Buffer.isBuffer(data)) {
+        if (data instanceof ArrayBuffer) {
+            result = Buffer.from(data);
+        }
+        else if (ArrayBuffer.isView(data)) {
+            result = ViewToBuffer(data);
+        }
+        else {
+            result = Buffer.from(data, 'utf8');
+        }
+    }
+
+    return result;
 }
 
 function MakeFrame(data: Buffer, options: FrameOptions) {
@@ -198,7 +202,7 @@ function MakeFrame(data: Buffer, options: FrameOptions) {
 }
 
 function ViewToBuffer(view: ArrayBufferView) {
-    const buf = Buffer.from(view.buffer);
+    const buf = Buffer.from(view.buffer as ArrayBuffer);
 
     if (view.byteLength !== view.buffer.byteLength) {
         return buf.slice(view.byteOffset, view.byteOffset + view.byteLength);

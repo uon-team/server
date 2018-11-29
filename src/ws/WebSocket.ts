@@ -27,14 +27,22 @@ export class WebSocket extends WsContext {
 
     private _context: WsContext;
 
+    /**
+     * Creates a new WebSocket
+     * If a url is passed as the first argument, it will attempt 
+     * to connect to the specified host. In that case, make sure 
+     * you set am 'open' event listener on this here WebSocket
+     * @param url 
+     * @param headers 
+     */
     constructor(url?: string, headers: { [k: string]: string } = {}) {
         super();
 
         // constructed as a client
-        if(typeof url === 'string') {
+        if (typeof url === 'string') {
             this.connect(url, headers)
         }
-        
+
     }
 
     get readyState() {
@@ -114,7 +122,7 @@ export class WebSocket extends WsContext {
 
             });
 
-            request.end();
+        request.end();
 
 
     }

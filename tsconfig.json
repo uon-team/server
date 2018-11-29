@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "moduleResolution": "node",
-    "module": "commonjs",
-    "target": "es2015",
+    "module": "es2015",
+    "target": "es2017",
     "noImplicitAny": true,
     "sourceMap": true,
     "declaration": true,
@@ -11,7 +11,7 @@
     "emitDecoratorMetadata": true
 
   },
-  "lib": [ "es2015" ],
+  "lib": [ "es2017" ],
   "include": [
     "src/**/*"
   ],
