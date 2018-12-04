@@ -4,11 +4,11 @@ import { HttpResponse } from '../http/HttpResponse';
 import { LetsEncryptService } from './LetsEncryptService';
 import { LE_CONFIG, LetsEncryptConfig } from './LetsEncryptConfig';
 import { Inject } from '@uon/core';
-import { RouteMatch, Controller, ActivatedRoute } from '@uon/router';
+import { RouteMatch, RouterOutlet, ActivatedRoute } from '@uon/router';
 import { HttpError } from '../http/HttpError';
 
 
-@Controller()
+@RouterOutlet()
 export class LetsEncryptController {
 
     constructor(private request: HttpRequest,

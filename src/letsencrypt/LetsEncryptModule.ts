@@ -7,7 +7,7 @@ import { LetsEncryptService } from './LetsEncryptService';
 import { CLUSTER_MASTER_INIT, CLUSTER_WORKER_INIT } from '../cluster/ClusterLifecycle';
 import { ClusterModule } from '../cluster/ClusterModule';
 import { LetsEncryptController } from './LetsEncryptController';
-import { HTTP_SSL_PROVIDER, HttpSSLProvider } from '../http/HttpServer';
+import { HTTP_TLS_PROVIDER, HttpTLSProvider } from '../http/TlsProvider';
 import { HTTP_REDIRECT_ROUTER, HttpRoute } from '../http/HttpRouter';
 
 
@@ -19,8 +19,8 @@ import { HTTP_REDIRECT_ROUTER, HttpRoute } from '../http/HttpRouter';
     providers: [
         LetsEncryptService,
         {
-            token: HTTP_SSL_PROVIDER,
-            factory: (service: LetsEncryptService): HttpSSLProvider => {
+            token: HTTP_TLS_PROVIDER,
+            factory: (service: LetsEncryptService): HttpTLSProvider => {
                 return service;
             },
             deps: [LetsEncryptService]
@@ -30,7 +30,7 @@ import { HTTP_REDIRECT_ROUTER, HttpRoute } from '../http/HttpRouter';
             factory: (router: Router<HttpRoute>) => {
                 router.add({
                     path: '/.well-known/acme-challenge',
-                    controller: LetsEncryptController
+                    outlet: LetsEncryptController
                 });
             },
             deps: [HTTP_REDIRECT_ROUTER],

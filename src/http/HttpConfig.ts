@@ -1,4 +1,4 @@
-import { InjectionToken, Provider, ProvideInjectable } from '@uon/core';
+import { InjectionToken, Provider, ProvideInjectable, ProvideValue } from '@uon/core';
 
 import { HttpCache, HttpCacheConfig, HTTP_CACHE_CONFIG } from './transforms/HttpCache';
 import { HttpEncoding, HttpEncodingConfig, HTTP_ENCODING_CONFIG } from './transforms/HttpEncoding';
@@ -6,7 +6,7 @@ import { HttpCookies } from './transforms/HttpCookies';
 import { HttpAuthorization } from './transforms/HttpAuthorization';
 import { HttpRange, HttpRangeConfig, HTTP_RANGE_CONFIG } from './transforms/HttpRange';
 import { HTTP_REQUEST_BODY_CONFIG, HttpRequestBodyConfig } from './HttpRequest';
-import { HttpErrorHandler, HTTP_ERROR_HANDLER, DefaultHttpErrorHandler } from './HttpErrorHandler';
+import { HTTP_ERROR_HANDLER, DefaultHttpErrorHandler } from './HttpErrorHandler';
 
 // the unique http config token
 export const HTTP_CONFIG = new InjectionToken<HttpConfig>('HTTP Configuration');

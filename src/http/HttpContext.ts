@@ -1,14 +1,13 @@
-import { EventSource, Type, Injector, Provider, InjectionToken, GetTypeMetadata } from '@uon/core';
-import { Router, RouteMatch, ActivatedRoute, IRouteGuardService, Controller, RouteGuard } from '@uon/router';
+import { Type, Injector, Provider, InjectionToken, GetTypeMetadata } from '@uon/core';
+import { RouteMatch, ActivatedRoute, RouterOutlet, RouteGuard } from '@uon/router';
 import { IncomingMessage, ServerResponse, OutgoingHttpHeaders, STATUS_CODES } from 'http';
-import { parse as UrlParse, Url } from 'url';
+import { Url } from 'url';
 
 import { HttpError } from './HttpError';
 import { DEFAULT_CONTEXT_PROVIDERS } from './HttpConfig';
 
 import { HttpResponse } from './HttpResponse';
-import { HttpRequest, HTTP_REQUEST_BODY_CONFIG } from './HttpRequest';
-import { Socket } from 'net';
+import { HttpRequest } from './HttpRequest';
 import { HttpErrorHandler, HTTP_ERROR_HANDLER } from './HttpErrorHandler';
 
 /**
@@ -129,9 +128,9 @@ export class HttpContext {
     async processError(match: RouteMatch, error: HttpError) {
 
         // if the controller has a onHttpError method, we use that
-        if (match && match.controller.prototype.onHttpError) {
+        if (match && match.outlet.prototype.onHttpError) {
 
-            const ctrl = await this._injector.instanciateAsync(match.controller);
+            const ctrl = await this._injector.instanciateAsync(match.outlet);
 
             return await ctrl.onHttpError(error);
         }
@@ -242,7 +241,7 @@ export class HttpContext {
      */
     private async processMatch(match: RouteMatch) {
 
-        const ctrl = await this._injector.instanciateAsync(match.controller);
+        const ctrl = await this._injector.instanciateAsync(match.outlet);
 
         return ctrl[match.handler.methodKey]();
     }
@@ -284,7 +283,7 @@ export class HttpContext {
             });
 
             // get controller specific providers
-            let controller_meta: Controller = GetTypeMetadata(match.controller).filter(t => t instanceof Controller)[0];
+            let controller_meta: RouterOutlet = GetTypeMetadata(match.outlet).filter(t => t instanceof RouterOutlet)[0];
             if (controller_meta && controller_meta.providers) {
                 providers = providers.concat(controller_meta.providers);
             }

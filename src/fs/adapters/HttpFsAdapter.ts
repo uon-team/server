@@ -5,41 +5,50 @@ import { Readable, Writable } from 'stream';
 import { GetMimeType, SanitizePath } from '../FsUtils';
 
 import { FsAdapter, FileStat } from '../FsAdapter';
+import { OutgoingHttpHeaders } from 'http';
+import { Url, parse as UrlParse } from 'url';
 
 
+const DEFAULT_REQUEST_HEADERS = {
+    'User-Agent': `uon/1.0.0`
+};
 
-export interface LocalFsConfig {
+
+export interface HttpFsConfig {
 
     /**
      * The path on the local file system from which
      * all given paths are relative
      */
-    basePath: string;
+    baseUrl: string;
 
     /**
-     * If set to true, directories will be created when writing
-     * a file to a path that doesn't exist.
-     * 
-     * Otherwise, write() and createWriteStream() will throw
+     * The headers to send with each request
      */
-    forceDirCreationOnWrite?: boolean;
+    headers?: OutgoingHttpHeaders
+
 }
 
 /**
- * FsAdapter implementation for local file system access.
+ * FsAdapter implementation for http (WebDAV) file access.
  *  
- * Paths are always relative to the base path, 
+ * Paths are always relative to the base url, 
  * and the base path is the absolute root dir. Cannot use ../
  */
-export class LocalFsAdapter implements FsAdapter {
+export class HttpFsAdapter implements FsAdapter {
 
-    constructor(private config: LocalFsConfig) {
+
+    private _url: Url;
+
+    constructor(private config: HttpFsConfig) {
+
+        this._url = UrlParse(this.config.baseUrl);
 
     }
 
     createReadStream(path: string, options?: any): Readable {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
         return fs.createReadStream(filepath, options);
 
@@ -47,12 +56,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     createWriteStream(path: string, options?: any): Writable {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
-
-        // make sure dir exists if config permits it
-        if (this.config.forceDirCreationOnWrite) {
-            EnsureDirectoryExistence(filepath);
-        }
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
 
         return fs.createWriteStream(filepath, options);
@@ -61,7 +65,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     read(path: string): Promise<Buffer> {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -80,14 +84,9 @@ export class LocalFsAdapter implements FsAdapter {
 
     write(path: string, data: Buffer): Promise<FileStat> {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
-
-            // make sure dir exists if config permits it
-            if (this.config.forceDirCreationOnWrite) {
-                EnsureDirectoryExistence(filepath);
-            }
 
             // write the file
             fs.writeFile(filepath, data, (err) => {
@@ -110,7 +109,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     delete(path: string): Promise<boolean> {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -129,7 +128,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     stat(path: string): Promise<FileStat> {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
         return new Promise((resolve, reject) => {
 
@@ -160,7 +159,7 @@ export class LocalFsAdapter implements FsAdapter {
 
     list(path: string): Promise<FileStat[]> {
 
-        const filepath = _path.join(this.config.basePath, SanitizePath(path));
+        const filepath = _path.join(this.config.baseUrl, SanitizePath(path));
 
 
         return new Promise((resolve, reject) => {
@@ -190,17 +189,9 @@ export class LocalFsAdapter implements FsAdapter {
 
     }
 
+    private createRequest(method: string, path: string) {
 
-}
-
-function EnsureDirectoryExistence(filePath: string) {
-    var dirname = _path.dirname(filePath);
-
-    if (fs.existsSync(dirname)) {
-        return true;
     }
 
-    EnsureDirectoryExistence(dirname);
-    fs.mkdirSync(dirname);
 
 }

@@ -18,7 +18,9 @@ export interface ClusterConfig {
 
 
     /**
-     * Number of process to launch, defaults to os.cpus().length
+     * The number of processes to launch.
+     * If set to 0 or not defined, the value defaults to the 
+     * number of cores available on the machine 
      */
     concurrency?: number;
 

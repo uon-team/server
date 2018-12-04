@@ -85,19 +85,19 @@ export class WsSender {
 
     ping(data: Buffer | ArrayBuffer | string, options: WsSendOptions = EMPTY_OBJECT) {
 
-        this.sendFrame(
+        return this.sendFrame(
             MakeFrame(EnsureBuffer(data), {
-            fin: true,
-            rsv1: false,
-            opcode: 0x09,
-            mask: options.mask
-        })
+                fin: true,
+                rsv1: false,
+                opcode: 0x09,
+                mask: options.mask
+            })
         );
     }
 
     pong(data: Buffer | ArrayBuffer | string, options: WsSendOptions = EMPTY_OBJECT) {
 
-        this.sendFrame(
+        return this.sendFrame(
             MakeFrame(EnsureBuffer(data), {
                 fin: true,
                 rsv1: false,

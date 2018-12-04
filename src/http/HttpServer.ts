@@ -3,7 +3,6 @@
 import { Injectable, Inject, Optional, EventSource, Injector, Provider, InjectionToken } from '@uon/core';
 import { Server, IncomingMessage, ServerResponse } from 'http';
 import * as https from 'https';
-import * as tls from 'tls';
 import { Socket } from 'net';
 import { parse as ParseUrl } from 'url';
 
@@ -14,6 +13,7 @@ import { HttpError } from './HttpError';
 import { HTTP_ROUTER, HTTP_REDIRECT_ROUTER, MatchMethodFunc, HttpRoute } from './HttpRouter';
 import { Log } from '../log/Log';
 import { Router } from '@uon/router';
+import { HTTP_TLS_PROVIDER, HttpTLSProvider } from './TlsProvider';
 
 
 
@@ -23,41 +23,7 @@ import { Router } from '@uon/router';
  */
 export const HTTP_ACCESS_LOG = new InjectionToken<Log>("Access log for http requests");
 
-/**
- * SSL Certificate provider token
- */
-export const HTTP_SSL_PROVIDER = new InjectionToken<HttpSSLProvider>("Provider for SSL certificates");
 
-
-/**
- * Interface to implement for for providing ssl certificates
- */
-export interface HttpSSLProvider {
-
-    /**
-     * Get the tls secure context for a given domain, used for SNICallback
-     * @param domain 
-     */
-    getSecureContext(domain: string): Promise<tls.SecureContext>;
-
-    /**
-     * Fetch the default cert and key
-     */
-    getDefault(): Promise<{ key: any, cert: any }>;
-
-}
-
-
-/**
- * Override for handling request
- */
-interface RequestOverrides {
-    method?: string;
-    providers?: Provider[];
-    context?: HttpContext;
-}
-
-const EMPTY_OBJECT = {};
 
 const ROUTER_MATCH_FUNCS = [MatchMethodFunc];
 
@@ -73,7 +39,7 @@ export class HttpServer extends EventSource {
     private _https: https.Server;
 
     constructor(@Inject(HTTP_CONFIG) private config: HttpConfig,
-        @Optional() @Inject(HTTP_SSL_PROVIDER) private sslProvider: HttpSSLProvider,
+        @Optional() @Inject(HTTP_TLS_PROVIDER) private sslProvider: HttpTLSProvider,
         @Optional() @Inject(HTTP_ACCESS_LOG) private accessLog: Log,
         private injector: Injector) {
 
@@ -105,7 +71,7 @@ export class HttpServer extends EventSource {
     /**
      * Start listening to incoming messages
      */
-    start(): Promise<any> {
+    async start() {
 
         // maybe we already started this thing, we should let the user know
         if (this._started) {
@@ -123,18 +89,12 @@ export class HttpServer extends EventSource {
         // if an SSL provider is defined, create an https server
         if (this.sslProvider) {
 
-            return this.spawnHttpsServer()
-                .then(() => {
-                    return this;
-                });
-
-        }
-        else {
-
+            await this.spawnHttpsServer();
+            return this;
 
         }
 
-        return Promise.resolve(this);
+        return this;
     }
 
 
@@ -287,7 +247,7 @@ export class HttpServer extends EventSource {
 
             // make sure a response was sent
             if (!http_context.response.sent) {
-                console.error(`Controller ${match.controller.name}.${match.handler.methodKey} did not provide a response.`);
+                console.error(`RouterOutlet ${match.outlet.name}.${match.handler.methodKey} did not provide a response.`);
                 throw new HttpError(501);
             }
         }

@@ -140,10 +140,10 @@ export class WsReceiver extends Writable {
 
         const compressed = (buf[0] & 0x40) === 0x40;
 
-        /* if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
+         if (compressed) {
              this._loop = false;
-             return MakeError(RangeError, 'RSV1 must be clear', 1002);
-         }*/
+             return MakeError(RangeError, `Implementation doesn't yet support compression`, 1002);
+         }
 
         this._fin = (buf[0] & 0x80) === 0x80;
         this._opcode = buf[0] & 0x0f;
@@ -253,10 +253,7 @@ export class WsReceiver extends Writable {
         const buf = this.consume(8);
         const num = buf.readUInt32BE(0);
 
-        //
-        // The maximum safe integer in JavaScript is 2^53 - 1. An error is returned
-        // if payload length is greater than this number.
-        //
+        // care for max safe int value
         if (num > MAX_SAFE_INT_VALUE) {
             this._loop = false;
             return MakeError(

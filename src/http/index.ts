@@ -8,6 +8,7 @@ export { HttpResponse } from './HttpResponse';
 export * from './HttpRouter';
 export * from './HttpError';
 export * from './HttpErrorHandler';
+export * from './TlsProvider';
 
 
 // Http transforms
