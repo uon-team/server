@@ -5,13 +5,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prepublishOnly": "tsc -p ./ --outDir dist/",
     "build": "tsc && cp package.json dist/",
     "build:internal": "npm run build && cd dist && npm link"
   },
   "dependencies": {
     "mime-types": "^2.1.17",
-    "@uon/core": "^0.3.0",
+    "@uon/core": "^0.4.0",
     "@uon/router": "^0.4.0"
   },
   "devDependencies": {

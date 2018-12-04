@@ -1,6 +1,6 @@
 
 import { InjectionToken } from '@uon/core';
-import { Router, MakeRouteHandlerDecorator, RouteHandlerDecorator, RouteHandler, RouteHandlerData } from '@uon/router';
+import { Router, MakeRouteHandlerDecorator, RouteHandlerData } from '@uon/router';
 
 
 /**

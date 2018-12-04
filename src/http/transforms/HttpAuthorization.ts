@@ -4,7 +4,7 @@ import { HttpTransform } from './HttpTransform';
 import { HttpResponse } from '../HttpResponse';
 
 
-interface WWWAuthenticateConfig {
+export interface WWWAuthenticateConfig {
     scheme: string;
     realm: string;
     charset?: string;
